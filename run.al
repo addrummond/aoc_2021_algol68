@@ -1,6 +1,5 @@
 BEGIN
   FILE in;
-  STRING s;
 
   open(in, "data.txt", stand in channel);
   BOOL finished reading := FALSE;
