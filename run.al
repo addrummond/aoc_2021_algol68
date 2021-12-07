@@ -9,7 +9,7 @@ INT count := 0;
 
 WHILE
   INT value;
-  get(in,(value, new line));
+  get(in, (value, new line));
   NOT finished reading
 DO
   IF last measurement /= -1 AND value > last measurement THEN
@@ -21,6 +21,6 @@ OD;
 
 close(in);
 
-printf(($ "The number of increases: ", 5zd$, count));
+printf(($"The number of increases: ", 5zd$, count));
 print(newline)
 
