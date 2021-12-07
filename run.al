@@ -13,10 +13,8 @@ BEGIN
     get(in,(value, new line));
     NOT finished reading
   DO 
-    IF last measurement /= -1 THEN
-      IF value > last measurement THEN
-        count := count + 1
-      FI
+    IF last measurement /= -1 AND value > last measurement THEN
+      count := count + 1
     FI;
 
     last measurement := value
