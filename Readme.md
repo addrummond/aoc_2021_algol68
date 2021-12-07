@@ -5,6 +5,5 @@ Compiled using https://jmvdveer.home.xs4all.nl/en.algol-68-genie.html
 From the project directory:
 
 ```sh
-a68g run.al
+a68g partN.al
 ```
-

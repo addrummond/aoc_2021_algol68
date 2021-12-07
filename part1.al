@@ -1,6 +1,6 @@
 FILE in;
 
-open(in, "data.txt", stand in channel);
+open(in, "data1.txt", stand in channel);
 BOOL finished reading := FALSE;
 on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
 
