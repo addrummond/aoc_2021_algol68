@@ -22,6 +22,7 @@ BEGIN
 
     last measurement := value
   OD;
+
   close(in);
 
   printf(($ "The number of increaes: ", 5zd$, count));
