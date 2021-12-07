@@ -24,7 +24,7 @@ BEGIN
 
   close(in);
 
-  printf(($ "The number of increaes: ", 5zd$, count));
+  printf(($ "The number of increases: ", 5zd$, count));
   print(newline)
 END
 
