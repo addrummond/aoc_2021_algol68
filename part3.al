@@ -21,7 +21,7 @@ DO
       ones[d] := ones[d] - 1,
       ones[d] := ones[d] + 1
     ESAC
-  OD;
+  OD
 OD;
 
 INT gamma := 0;
