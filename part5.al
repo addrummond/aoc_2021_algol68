@@ -117,7 +117,7 @@ BEGIN
   
   INT n danger points := count danger points(lines, xoff, yoff, width, height);
 
-  printf(($"Number of danger points = ", 10zdl$, n danger points))
+  printf(($"Number of danger points = ", g(0)l$, n danger points))
 END;
 
 main

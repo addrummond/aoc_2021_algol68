@@ -75,7 +75,7 @@ BEGIN
 
   INT n fish := simulate(fish);
 
-  printf(($"Number of fish = ", 10zdl$, n fish))
+  printf(($"Number of fish = ", g(0)l$, n fish))
 END;
 
 main

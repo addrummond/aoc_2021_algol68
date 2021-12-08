@@ -21,5 +21,5 @@ OD;
 
 close(in);
 
-printf(($"The number of increases: ", 5zdl$, count))
+printf(($"The number of increases: ", g(0)l$, count))
 

@@ -157,7 +157,7 @@ BEGIN
   get bingo state(in, finished reading, numbers, cards);
   close(in);
 
-  printf(($"Winning score = ", 10zdl$, play bingo(numbers, cards)))
+  printf(($"Winning score = ", g(0)l$, play bingo(numbers, cards)))
 END;
 
 main

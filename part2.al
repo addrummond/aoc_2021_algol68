@@ -22,4 +22,4 @@ OD;
 
 close(in);
 
-printf(($"Horizontal position * depth = ", 10zdl$, horizontal position * depth))
+printf(($"Horizontal position * depth = ", g(0)l$, horizontal position * depth))

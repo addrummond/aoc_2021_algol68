@@ -37,4 +37,4 @@ FOR d FROM 1 TO number of digits DO
   FI
 OD;
 
-printf(($"Power consumption = ", 10zdl$, gamma * epsilon))
+printf(($"Power consumption = ", g(0)l$, gamma * epsilon))
