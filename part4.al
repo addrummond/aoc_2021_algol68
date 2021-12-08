@@ -65,9 +65,7 @@ BEGIN
         state := skip first blank
       END,
       # skip first blank #
-      BEGIN
-        state := in row
-      END,
+      state := in row,
       # in row #
       IF line = "" THEN
         IF card index > UPB cards THEN
