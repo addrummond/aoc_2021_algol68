@@ -50,7 +50,7 @@ BEGIN
   INT card index := 1;
 
   cards := HEAP FLEX [1:8]REF [,]INT;
-  numbers := HEAP FLEX [1:8]INT;
+  numbers := LOC FLEX [1:0]INT;
 
   WHILE
     NOT finished reading
