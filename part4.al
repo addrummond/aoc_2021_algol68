@@ -28,7 +28,7 @@ BEGIN
       current number := current number + ABS(line[si]) - ABS("0")
     FI
   OD;
-  IF UPB line - LWB line >= 1 THEN
+  IF UPB line >= 1 THEN
     numbers[ni] := current number
   FI;
 
