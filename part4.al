@@ -155,6 +155,7 @@ BEGIN
   REF FLEX []REF [,]INT cards := LOC FLEX [1:0]REF [,]INT;
 
   get bingo state(in, finished reading, numbers, cards);
+  close(in);
 
   printf(($"Winning score = ", 10zdl$, play bingo(numbers, cards)))
 END;

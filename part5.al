@@ -110,6 +110,7 @@ BEGIN
 
   REF FLEX []LINE lines := LOC [1:0]LINE;
   read lines(in, finished reading, lines);
+  close(in);
 
   INT xoff, yoff, width, height;
   get grid dimensions(lines, xoff, yoff, width, height);

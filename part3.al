@@ -24,6 +24,8 @@ DO
   OD
 OD;
 
+close(in);
+
 INT gamma := 0;
 INT epsilon := 0;
 
