@@ -101,7 +101,7 @@ BEGIN
   INT fuel := fuel consumption(crabs, opt pos);
 
   printf(($"Optimum horizontal position = ", g(0)l$, opt pos));
-  printf(($"Fuel consumption = ", g(0)l$, fuel));
+  printf(($"Fuel consumption = ", g(0)l$, fuel))
 END;
 
 main
