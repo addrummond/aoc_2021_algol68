@@ -64,7 +64,7 @@ PROC main = VOID:
 BEGIN
   FILE in;
 
-  open(in, "data6.txt", stand in channel);
+  open(in, "data/data6.txt", stand in channel);
   STRING line;
   get(in, line);
 

@@ -147,7 +147,7 @@ PROC main = VOID:
 BEGIN
   FILE in;
 
-  open(in, "data4.txt", stand in channel);
+  open(in, "data/data4.txt", stand in channel);
   BOOL finished reading := FALSE;
   on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
 
