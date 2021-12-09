@@ -38,9 +38,9 @@ BEGIN
   numbers := numbers[:ni]
 END;
 
-PROC simulate = (REF FLEX []INT fish, INT n days) INT:
+PROC simulate = (REF FLEX []INT fish, INT n days) LONG INT:
 BEGIN
-  [start value + new fish extra]INT nfish;
+  [start value + new fish extra]LONG INT nfish;
   FOR i FROM LWB nfish TO UPB nfish DO
     nfish[i] := 0
   OD;
@@ -49,7 +49,7 @@ BEGIN
   OD;
 
   FOR day FROM 1 TO n days DO
-    INT n new fish := nfish[1];
+    LONG INT n new fish := nfish[1];
     FOR i FROM 1 TO UPB nfish - 1 DO
       nfish[i] := nfish[i + 1]
     OD;
@@ -57,7 +57,7 @@ BEGIN
     nfish[start value] +:= n new fish
   OD;
 
-  INT tot := 0;
+  LONG INT tot := 0;
   FOR i FROM LWB nfish TO UPB nfish DO
     tot +:= nfish[i]
   OD;
@@ -78,8 +78,8 @@ BEGIN
   read integers(line, ",", fish);
   close(in);
 
-  INT n fish := simulate(fish, n days);
-  INT part 2 n fish := simulate(fish, part 2 n days);
+  LONG INT n fish := simulate(fish, n days);
+  LONG INT part 2 n fish := simulate(fish, part 2 n days);
 
   printf(($"Part 1: number of fish after ", g(0), " days = ", g(0)l$, n days, n fish));
   printf(($"Part 2: number of fish after ", g(0), " days = ", g(0)l$, part 2 n days, part 2 n fish))
