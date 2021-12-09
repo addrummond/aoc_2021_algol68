@@ -41,7 +41,7 @@ BEGIN
 END;
 
 # We have to implement our own sort – yay! #
-PROC quicksort = (REF FLEX []INT array, INT start, end) VOID:
+PROC quicksort = (REF FLEX []INT array) VOID:
 BEGIN
   PROC partition = (REF FLEX []INT array, INT start, end) INT:
   BEGIN
@@ -58,12 +58,17 @@ BEGIN
     pivot index
   END;
 
-  IF start < end AND start >= 0 THEN
-    INT pivot index := partition(array, start, end);
+  PROC sort = (REF FLEX []INT array, INT start, end) VOID:
+  BEGIN
+    IF start < end AND start >= 0 THEN
+      INT pivot index := partition(array, start, end);
 
-    quicksort(array, start, pivot index - 1);
-    quicksort(array, pivot index + 1, end)
-  FI
+      sort(array, start, pivot index - 1);
+      sort(array, pivot index + 1, end)
+    FI
+  END;
+
+  sort(array, LWB array, UPB array)
 END;
 
 # I believe that this problem reduces to finding the median of the array #
@@ -95,7 +100,7 @@ BEGIN
   read integers(line, ",", crabs);
   close(in);
 
-  quicksort(crabs, LWB crabs, UPB crabs);
+  quicksort(crabs);
 
   INT opt pos := median(crabs);
   INT fuel := fuel consumption(crabs, opt pos);
