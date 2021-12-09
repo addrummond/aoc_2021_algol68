@@ -21,7 +21,7 @@ BEGIN
         FI;
         numbers[ni] := current number;
         current number := 0;
-        ni := ni + 1
+        ni +:= 1
       FI
     ELSE
       already got sep := FALSE;
@@ -45,7 +45,7 @@ BEGIN
       fish[fi] := fish[fi] - 1;
       IF fish[fi] < 0 THEN
         fish[fi] := start value;
-        n new fish := n new fish + 1
+        n new fish +:= 1
       FI
     OD;
 

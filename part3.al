@@ -18,8 +18,8 @@ WHILE
 DO
   FOR d FROM 1 TO number of digits DO
     CASE digits[d] IN
-      ones[d] := ones[d] - 1,
-      ones[d] := ones[d] + 1
+      ones[d] -:= 1,
+      ones[d] +:= 1
     ESAC
   OD
 OD;

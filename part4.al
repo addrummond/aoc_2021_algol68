@@ -19,7 +19,7 @@ BEGIN
         FI;
         numbers[ni] := current number;
         current number := 0;
-        ni := ni + 1
+        ni +:= 1
       FI
     ELSE
       already got sep := FALSE;
@@ -75,14 +75,14 @@ BEGIN
         FI;
         cards[card index] := current card;
         current card := HEAP [card dim, card dim]INT;
-        card index := card index + 1;
+        card index +:= 1;
         card row := 1;
         card col := 1
       ELSE
         FLEX [1:0]INT row numbers;
         read integers(line, " ", row numbers);
         current card[card row,] := row numbers;
-        card row := card row + 1
+        card row +:= 1
       FI
     ESAC
   OD;
@@ -122,9 +122,9 @@ BEGIN
       FOR r FROM 1 TO card dim DO
         FOR c FROM 1 TO card dim DO
           IF cards[ci][r,c] = n THEN
-            card scores[ci] := card scores[ci] - n;
-            row marks[ci,r] := row marks[ci,r] + 1;
-            col marks[ci,c] := col marks[ci,c] + 1;
+            card scores[ci] -:= n;
+            row marks[ci,r] +:= 1;
+            col marks[ci,c] +:= 1;
             IF row marks[ci,r] = card dim OR col marks[ci, c] = card dim THEN
               winning card := ci;
               GO TO out

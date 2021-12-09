@@ -20,7 +20,7 @@ BEGIN
         lines := new lines
       FI;
       lines[line i] := (x1, y1, x2, y2);
-      line i := line i + 1
+      line i +:= 1
     FI
   OD;
 
@@ -81,16 +81,16 @@ BEGIN
 
     IF x1 OF l = x2 OF l THEN
       FOR y FROM min(y1 OF l, y2 OF l) TO max(y1 OF l, y2 OF l) DO
-        grid[xoff + x1 OF l, yoff + y] := grid[xoff + x1 OF l, yoff + y] + 1;
+        grid[xoff + x1 OF l, yoff + y] +:= 1;
         IF grid[xoff + x1 OF l, yoff + y] = 2 THEN
-          danger points := danger points + 1
+          danger points +:= 1
         FI
       OD
     ELIF y1 OF l = y2 OF l THEN
       FOR x FROM min(x1 OF l, x2 OF l) TO max(x1 OF l, x2 OF l) DO
-        grid[xoff + x, yoff + y1 OF l] := grid[xoff + x, yoff + y1 OF l] + 1;
+        grid[xoff + x, yoff + y1 OF l] +:= 1;
         IF grid[xoff + x, yoff + y1 OF l] = 2 THEN
-          danger points := danger points + 1
+          danger points +:= 1
         FI
       OD
     FI
