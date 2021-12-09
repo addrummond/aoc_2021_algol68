@@ -138,12 +138,12 @@ BEGIN
   INT p1 opt pos := median(crabs);
   INT fuel := fuel consumption part 1(crabs, p1 opt pos);
 
-  printf(($"Optimum horizontal position = ", g(0)l$, p1 opt pos));
-  printf(($"Fuel consumption = ", g(0)l$, fuel));
+  printf(($"Part 1 optimum horizontal position = ", g(0)l$, p1 opt pos));
+  printf(($"Part 1 fuel consumption = ", g(0)l$, fuel));
 
   INT p2 opt pos := part 2 opt pos(crabs, LWB crabs, UPB crabs);
-  printf(($"P2 Optimum horizontal position = ", g(0)l$, p2 opt pos));
-  printf(($"P2 Fuel burn = ", g(0)l$, fuel consumption part 2(crabs, p2 opt pos)))
+  printf(($"Part 2 optimum horizontal position = ", g(0)l$, p2 opt pos));
+  printf(($"Part 2 fuel burn = ", g(0)l$, fuel consumption part 2(crabs, p2 opt pos)))
 END;
 
 main
