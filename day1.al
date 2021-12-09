@@ -25,7 +25,7 @@ BEGIN
 
   close(in);
 
-  array := array[:n];
+  array := array[:n]
 END;
 
 PROC part 1 increases = (REF FLEX []INT array) INT:
