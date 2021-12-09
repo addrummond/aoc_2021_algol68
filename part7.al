@@ -71,20 +71,52 @@ BEGIN
   sort(array, LWB array, UPB array)
 END;
 
-# I believe that this problem reduces to finding the median of the array #
-# (although I have not proved this). #
 PROC median = (REF []INT array) INT:
 BEGIN
-  array[(UPB array + 1) OVER 2]
+  INT tot := 0;
+  FOR i FROM LWB array TO UPB array DO
+    tot +:= array[i]
+  OD;
+  ROUND(tot / UPB array)
+  #array[(UPB array + 1) OVER 2]#
 END;
 
-PROC fuel consumption = (REF []INT crabs, INT pos) INT:
+PROC fuel consumption part 1 = (REF []INT crabs, INT pos) INT:
 BEGIN
   INT tot := 0;
   FOR i FROM LWB crabs TO UPB crabs DO
     tot +:= ABS(crabs[i] - pos)
   OD;
   tot
+END;
+
+PROC fuel consumption part 2 = (REF []INT crabs, INT pos) INT:
+BEGIN
+  INT tot := 0;
+  FOR i FROM LWB crabs TO UPB crabs DO
+    INT distance := ABS(crabs[i] - pos);
+    tot +:= (distance * (distance + 1)) OVER 2
+  OD;
+  tot
+END;
+
+PROC part 2 opt pos = (REF []INT crabs, INT start, end) INT:
+BEGIN
+  INT guess := (start + end) OVER 2;
+  INT burn := fuel consumption part 2(crabs, guess);
+  IF end <= start THEN
+    guess
+  ELSE
+    INT l burn := fuel consumption part 2(crabs, guess-1);
+    INT r burn := fuel consumption part 2(crabs, guess+1);
+    IF burn < l burn AND burn < r burn THEN
+      guess
+    ELIF burn < r burn THEN
+      part 2 opt pos(crabs, start, guess - 1)
+    ELSE
+      part 2 opt pos(crabs, guess + 1, end)
+    FI
+  FI
 END;
 
 PROC main = VOID:
@@ -100,13 +132,18 @@ BEGIN
   read integers(line, ",", crabs);
   close(in);
 
+  # I believe that part 1 reduces to finding the median of the array #
+  # (although I have not proved this). #
   quicksort(crabs);
+  INT p1 opt pos := median(crabs);
+  INT fuel := fuel consumption part 1(crabs, p1 opt pos);
 
-  INT opt pos := median(crabs);
-  INT fuel := fuel consumption(crabs, opt pos);
+  printf(($"Optimum horizontal position = ", g(0)l$, p1 opt pos));
+  printf(($"Fuel consumption = ", g(0)l$, fuel));
 
-  printf(($"Optimum horizontal position = ", g(0)l$, opt pos));
-  printf(($"Fuel consumption = ", g(0)l$, fuel))
+  INT p2 opt pos := part 2 opt pos(crabs, LWB crabs, UPB crabs);
+  printf(($"P2 Optimum horizontal position = ", g(0)l$, p2 opt pos));
+  printf(($"P2 Fuel burn = ", g(0)l$, fuel consumption part 2(crabs, p2 opt pos)))
 END;
 
 main
