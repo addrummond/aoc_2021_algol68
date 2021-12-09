@@ -45,7 +45,7 @@ BEGIN
   FI
 END;
 
-PROC get grid dimensions = (REF FLEX []LINE lines, REF INT xoff, yoff, width, height) VOID:
+PROC get grid dimensions = (REF []LINE lines, REF INT xoff, yoff, width, height) VOID:
 BEGIN
   INT maxx := x1 OF lines[1];
   INT maxy := y1 OF lines[1];
@@ -65,7 +65,7 @@ BEGIN
   height := maxy - miny + 1
 END;
 
-PROC count danger points = (REF FLEX []LINE lines, INT xoff, yoff, width, height) INT:
+PROC count danger points = (REF []LINE lines, INT xoff, yoff, width, height) INT:
 BEGIN
   REF [,]INT grid = HEAP [width,height]INT;
   INT danger points := 0;

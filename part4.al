@@ -91,7 +91,7 @@ BEGIN
   cards := cards[:card index]
 END;
 
-PROC play bingo = (REF FLEX []INT numbers, REF FLEX []REF [,]INT cards) INT:
+PROC play bingo = (REF []INT numbers, REF []REF [,]INT cards) INT:
 BEGIN
   REF []INT card scores = HEAP [UPB cards]INT;
   FOR ci FROM LWB cards TO UPB cards DO
