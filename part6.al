@@ -1,5 +1,5 @@
 INT n days = 80;
-INT start value = 6;
+INT start value = 7; # we offset the counters by +1 for more convenient array indexing #
 INT new fish extra = 2;
 
 PROC read integers = (STRING line, STRING separator, REF FLEX []INT numbers) VOID:
@@ -39,25 +39,29 @@ END;
 
 PROC simulate = (REF FLEX []INT fish) INT:
 BEGIN
-  FOR day FROM 1 TO n days DO
-    INT n new fish := 0;
-    FOR fi FROM LWB fish TO UPB fish DO
-      fish[fi] := fish[fi] - 1;
-      IF fish[fi] < 0 THEN
-        fish[fi] := start value;
-        n new fish +:= 1
-      FI
-    OD;
-
-    REF FLEX []INT new fish = HEAP FLEX [UPB fish + n new fish]INT;
-    new fish[:UPB fish] := fish;
-    FOR fi FROM UPB fish + 1 TO UPB new fish DO
-      new fish[fi] := start value + new fish extra
-    OD;
-    fish := new fish
+  [start value + new fish extra]INT nfish;
+  FOR i FROM LWB nfish TO UPB nfish DO
+    nfish[i] := 0
+  OD;
+  FOR i FROM LWB fish TO UPB fish DO
+    nfish[fish[i]+1] +:= 1
   OD;
 
-  UPB fish
+  FOR day FROM 1 TO n days DO
+    INT n new fish := nfish[1];
+    FOR i FROM 1 TO UPB nfish - 1 DO
+      nfish[i] := nfish[i + 1]
+    OD;
+    nfish[start value + new fish extra] := n new fish;
+    nfish[start value] +:= n new fish
+  OD;
+
+  INT tot := 0;
+  FOR i FROM LWB nfish TO UPB nfish DO
+    tot +:= nfish[i]
+  OD;
+
+  tot
 END;
 
 PROC main = VOID:
