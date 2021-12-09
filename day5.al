@@ -65,7 +65,7 @@ BEGIN
   height := maxy - miny + 1
 END;
 
-PROC count danger points = (REF []LINE lines, INT xoff, yoff, width, height) INT:
+PROC count danger points = (REF []LINE lines, BOOL include diagonals, INT xoff, yoff, width, height) INT:
 BEGIN
   REF [,]INT grid = HEAP [width,height]INT;
   INT danger points := 0;
@@ -93,6 +93,20 @@ BEGIN
           danger points +:= 1
         FI
       OD
+    ELIF include diagonals AND ABS(x1 OF l - x2 OF l) = ABS(y1 OF l - y2 OF l) THEN
+      INT length := ABS(x1 OF l - x2 OF l);
+      INT startx := x1 OF l;
+      INT starty := y1 OF l;
+      INT xs := IF x1 OF l < x2 OF l THEN 1 ELSE -1 FI;
+      INT ys := IF y1 OF l < y2 OF l THEN 1 ELSE -1 FI;
+      FOR i FROM 0 TO length DO
+         INT xc := xoff + startx + (i*xs);
+         INT yc := yoff + starty + (i*ys);
+         grid[xc, yc] +:= 1;
+         IF grid[xc, yc] = 2 THEN
+           danger points +:= 1
+         FI
+      OD
     FI
   OD;
 
@@ -115,9 +129,11 @@ BEGIN
   INT xoff, yoff, width, height;
   get grid dimensions(lines, xoff, yoff, width, height);
   
-  INT n danger points := count danger points(lines, xoff, yoff, width, height);
+  INT part 1 n danger points := count danger points(lines, FALSE, xoff, yoff, width, height);
+  INT part 2 n danger points := count danger points(lines, TRUE, xoff, yoff, width, height);
 
-  printf(($"Number of danger points = ", g(0)l$, n danger points))
+  printf(($"Part 1: number of danger points = ", g(0)l$, part 1 n danger points));
+  printf(($"Part 2: number of danger points = ", g(0)l$, part 2 n danger points))
 END;
 
 main
