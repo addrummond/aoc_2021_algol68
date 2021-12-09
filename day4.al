@@ -91,7 +91,7 @@ BEGIN
   cards := cards[:card index]
 END;
 
-PROC play bingo = (REF []INT numbers, REF []REF [,]INT cards) INT:
+PROC play bingo = (REF []INT numbers, REF []REF [,]INT cards, BOOL find first) INT:
 BEGIN
   REF []INT card scores = HEAP [UPB cards]INT;
   FOR ci FROM LWB cards TO UPB cards DO
@@ -113,25 +113,34 @@ BEGIN
   OD;
 
   INT winning card := -1;
+  INT winning card score := -1;
+  INT winning n := -1;
   INT n;
 
   FOR i FROM LWB numbers TO UPB numbers DO
     n := numbers[i];
 
     FOR ci FROM LWB cards TO UPB cards DO
-      FOR r FROM 1 TO card dim DO
-        FOR c FROM 1 TO card dim DO
-          IF cards[ci][r,c] = n THEN
-            card scores[ci] -:= n;
-            row marks[ci,r] +:= 1;
-            col marks[ci,c] +:= 1;
-            IF row marks[ci,r] = card dim OR col marks[ci, c] = card dim THEN
-              winning card := ci;
-              GO TO out
+      IF card scores[ci] /= -1 THEN # exclude cards that have already won #
+        FOR r FROM 1 TO card dim DO
+          FOR c FROM 1 TO card dim DO
+            IF cards[ci][r,c] = n THEN
+              card scores[ci] -:= n;
+              row marks[ci,r] +:= 1;
+              col marks[ci,c] +:= 1;
+              IF row marks[ci,r] = card dim OR col marks[ci, c] = card dim THEN
+                winning card := ci;
+                winning card score := card scores[ci];
+                winning n := n;
+                card scores[ci] := -1; # don't consider this card again #
+                IF find first THEN
+                  GO TO out
+                FI
+              FI
             FI
-          FI
+          OD
         OD
-      OD
+      FI
     OD
   OD;
 
@@ -139,7 +148,7 @@ out:
   IF winning card = -1 THEN
     0
   ELSE
-    card scores[winning card] * n
+    winning card score * winning n
   FI
 END;
 
@@ -157,7 +166,8 @@ BEGIN
   get bingo state(in, finished reading, numbers, cards);
   close(in);
 
-  printf(($"Winning score = ", g(0)l$, play bingo(numbers, cards)))
+  printf(($"Part 1: winning score = ", g(0)l$, play bingo(numbers, cards, TRUE)));
+  printf(($"Part 2: winning score = ", g(0)l$, play bingo(numbers, cards, FALSE)))
 END;
 
 main
