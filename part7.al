@@ -54,7 +54,7 @@ BEGIN
       FI
     OD;
     pivot index +:= 1;
-    swap (array, pivot index, end);
+    swap(array, pivot index, end);
     pivot index
   END;
 
