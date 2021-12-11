@@ -123,7 +123,7 @@ BEGIN
   on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
   on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
 
-  REF FLEX []LINE lines := read lines(in, finished reading);
+  REF []LINE lines := read lines(in, finished reading);
   close(in);
 
   INT xoff, yoff, width, height;
