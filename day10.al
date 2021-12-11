@@ -45,7 +45,7 @@ BEGIN
       stacki +:= 1;
       stack[stacki] := ">"
     ELSE
-      IF line[i] /= stack[stacki] THEN
+      IF (IF stacki = 0 THEN TRUE ELSE line[i] /= stack[stacki] FI) THEN
         score :=
           IF line[i] = ")" THEN
             3
