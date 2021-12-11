@@ -1,4 +1,4 @@
-PROC read numbers = (REF FLEX []INT array) VOID:
+PROC read numbers = REF []INT:
 BEGIN
   FILE in;
 
@@ -6,7 +6,7 @@ BEGIN
   BOOL finished reading := FALSE;
   on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
 
-  array := HEAP FLEX [1:8]INT;
+  REF FLEX []INT array := HEAP FLEX [1:8]INT;
 
   INT n := 0;
   WHILE
@@ -25,7 +25,8 @@ BEGIN
 
   close(in);
 
-  array := array[:n]
+  REF FLEX []INT(array) := array[:n];
+  array
 END;
 
 PROC part 1 increases = (REF FLEX []INT array) INT:
@@ -73,8 +74,7 @@ END;
 
 PROC main = VOID:
 BEGIN
-  REF FLEX []INT array := LOC FLEX [1:0]INT;
-  read numbers(array);
+  REF FLEX []INT array := read numbers;
 
   INT p1 increases := part 1 increases(array);
   printf(($"Part 1: the number of increases = ", g(0)l$, p1 increases));

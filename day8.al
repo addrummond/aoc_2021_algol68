@@ -34,9 +34,9 @@ BEGIN
   out digits[digits i] := current digit
 END;
 
-PROC read lines = (REF FILE in, REF BOOL finished reading, REF FLEX []LINE lines) VOID:
+PROC read lines = (REF FILE in, REF BOOL finished reading) REF []LINE:
 BEGIN
-  lines := HEAP FLEX [1:8]LINE;
+  REF FLEX []LINE lines := HEAP FLEX [1:8]LINE;
 
   INT line i := 1;
   WHILE
@@ -60,7 +60,8 @@ BEGIN
     FI
   OD;
 
-  lines := lines[:line i-1]
+  REF FLEX []LINE(lines) := lines[:line i-1];
+  lines
 END;
 
 PROC get seg count = (BITS segment) INT:
@@ -204,8 +205,7 @@ BEGIN
   on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
   on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
 
-  REF FLEX []LINE lines := LOC [1:0]LINE;
-  read lines(in, finished reading, lines);
+  REF []LINE lines := read lines(in, finished reading);
   close(in);
 
   printf(($"Part 1: easy digit count = ", g(0)l$, count easy digits(lines)));

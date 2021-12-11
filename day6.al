@@ -3,9 +3,9 @@ INT part 2 n days = 256;
 INT start value = 7; # we offset the counters by +1 for more convenient array indexing #
 INT new fish extra = 2;
 
-PROC read integers = (STRING line, STRING separator, REF FLEX []INT numbers) VOID:
+PROC read integers = (STRING line, STRING separator) REF []INT:
 BEGIN
-  numbers := HEAP FLEX [1:8]INT;
+  REF FLEX []INT numbers := HEAP FLEX [1:8]INT;
   INT ni := 1;
   INT current number := 0;
   BOOL already got sep := FALSE; # two or more separators in a row? #
@@ -35,10 +35,11 @@ BEGIN
     numbers[ni] := current number
   FI;
 
-  numbers := numbers[:ni]
+  REF FLEX []INT (numbers) := numbers[:ni];
+  numbers
 END;
 
-PROC simulate = (REF FLEX []INT fish, INT n days) LONG INT:
+PROC simulate = (REF []INT fish, INT n days) LONG INT:
 BEGIN
   [start value + new fish extra]LONG INT nfish;
   FOR i FROM LWB nfish TO UPB nfish DO
@@ -73,9 +74,7 @@ BEGIN
   STRING line;
   get(in, line);
 
-  REF FLEX []INT fish := LOC FLEX [1:0]INT;
-
-  read integers(line, ",", fish);
+  REF []INT fish = read integers(line, ",");
   close(in);
 
   LONG INT n fish := simulate(fish, n days);

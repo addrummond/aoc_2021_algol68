@@ -1,6 +1,6 @@
-PROC read integers = (STRING line, STRING separator, REF FLEX []INT numbers) VOID:
+PROC read integers = (STRING line, STRING separator) REF []INT:
 BEGIN
-  numbers := HEAP FLEX [1:8]INT;
+  REF FLEX []INT numbers := HEAP FLEX [1:8]INT;
   INT ni := 1;
   INT current number := 0;
   BOOL already got sep := FALSE; # two or more separators in a row? #
@@ -30,7 +30,8 @@ BEGIN
     numbers[ni] := current number
   FI;
 
-  numbers := numbers[:ni]
+  REF FLEX []INT(numbers) := numbers[:ni];
+  numbers
 END;
 
 PROC swap = (REF []INT array, INT i, j) VOID:
@@ -73,12 +74,7 @@ END;
 
 PROC median = (REF []INT array) INT:
 BEGIN
-  INT tot := 0;
-  FOR i FROM LWB array TO UPB array DO
-    tot +:= array[i]
-  OD;
-  ROUND(tot / UPB array)
-  #array[(UPB array + 1) OVER 2]#
+  array[(UPB array + 1) OVER 2]
 END;
 
 PROC fuel consumption part 1 = (REF []INT crabs, INT pos) INT:
@@ -127,9 +123,7 @@ BEGIN
   STRING line;
   get(in, line);
 
-  REF FLEX []INT crabs := LOC FLEX [1:0]INT;
-
-  read integers(line, ",", crabs);
+  REF []INT crabs := read integers(line, ",");
   close(in);
 
   # I believe that part 1 reduces to finding the median of the array #

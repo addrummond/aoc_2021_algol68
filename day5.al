@@ -2,9 +2,9 @@ MODE LINE = STRUCT (
   INT x1, y1, x2, y2
 );
 
-PROC read lines = (REF FILE in, REF BOOL finished reading, REF FLEX []LINE lines) VOID:
+PROC read lines = (REF FILE in, REF BOOL finished reading) REF []LINE:
 BEGIN
-  lines := HEAP FLEX [1:8]LINE;
+  REF FLEX []LINE lines := HEAP FLEX [1:8]LINE;
 
   INT line i := 1;
   WHILE
@@ -24,7 +24,8 @@ BEGIN
     FI
   OD;
 
-  lines := lines[:line i-1]
+  REF FLEX []LINE(lines) := lines[:line i-1];
+  lines
 END;
 
 PROC min = (INT a, INT b) INT:
@@ -122,8 +123,7 @@ BEGIN
   on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
   on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
 
-  REF FLEX []LINE lines := LOC [1:0]LINE;
-  read lines(in, finished reading, lines);
+  REF FLEX []LINE lines := read lines(in, finished reading);
   close(in);
 
   INT xoff, yoff, width, height;
