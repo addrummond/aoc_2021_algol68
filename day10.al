@@ -192,7 +192,7 @@ BEGIN
     IF cs /= "" THEN
       LONG INT p2 score := score completion string(cs);
       si +:= 1;
-      p2 scores[si] := p2 score;
+      p2 scores[si] := p2 score
     FI
   OD;
   p2 scores := p2 scores[:si];
