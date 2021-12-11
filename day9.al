@@ -124,7 +124,7 @@ BEGIN
         INT upy = y - 1;
         INT downy := y + 1;
         INT leftx := x - 1;
-        INT rightx := x +1;
+        INT rightx := x + 1;
         INT val := rows[y][x];
 
         IF (IF upy > 0 THEN rows[upy][x] >= val AND rows[upy][x] /= 9 AND NOT basin map[upy,x] ELSE FALSE FI) THEN
