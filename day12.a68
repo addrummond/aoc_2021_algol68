@@ -6,7 +6,6 @@ MODE NODE = STRUCT (
   REF FLEX []REF NODE outs,
   INT n outs,
   INT index,
-  STRING label,
   BOOL small,
   BOOL start,
   BOOL end
@@ -120,8 +119,8 @@ BEGIN
 
   INT starti = get node index(st, "start");
   INT endi = get node index(st, "end");
-  existing nodes[starti] := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, 1, "start", FALSE, TRUE, FALSE);
-  existing nodes[endi] := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, 2, "end", FALSE, FALSE, TRUE);
+  existing nodes[starti] := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, 1, FALSE, TRUE, FALSE);
+  existing nodes[endi] := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, 2, FALSE, FALSE, TRUE);
 
   FOR i FROM LWB links TO UPB links DO
     STRING from := from OF links[i];
@@ -130,12 +129,12 @@ BEGIN
     INT toi := get node index(st, to);
 
     IF fromi > n nodes THEN
-      REF NODE new node := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, fromi, from, is small(from), FALSE, FALSE);
+      REF NODE new node := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, fromi, is small(from), FALSE, FALSE);
       add node(existing nodes, n nodes, new node)
     FI;
 
     IF toi > n nodes THEN
-      REF NODE new node := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, toi, to, is small(to), FALSE, FALSE);
+      REF NODE new node := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, toi, is small(to), FALSE, FALSE);
       add node(existing nodes, n nodes, new node)
     FI;
 
