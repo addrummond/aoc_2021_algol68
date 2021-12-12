@@ -60,12 +60,15 @@ BEGIN
   OD
 END;
 
-PROC simulate = (REF [,]INT grid, INT n steps) INT:
+PROC simulate = (REF [,]INT grid, INT n steps, REF INT first sync) INT:
 BEGIN
   [UPB grid, UPB grid[1,]]BOOL flashes;
   INT n flashes := 0;
 
-  FOR xx FROM 1 TO n steps DO
+  INT step := 0;
+  WHILE step < n steps OR n steps = -1 DO
+    step +:= 1;
+
     # increase all energy levels by 1 #
     FOR i FROM LWB grid TO UPB grid DO
       FOR j FROM LWB grid[i,] TO UPB grid[i,] DO
@@ -97,15 +100,24 @@ BEGIN
     OD;
 
     # set all that flashed to zero energy level #
+    BOOL all flashed := TRUE;
     FOR i FROM LWB grid TO UPB grid DO
       FOR j FROM LWB grid[i,] TO UPB grid[i,] DO
         IF flashes[i,j] THEN
           grid[i,j] := 0
+        ELSE
+          all flashed := FALSE
         FI
       OD
-    OD
+    OD;
+
+    IF (first sync :/=: NIL) AND all flashed THEN
+      first sync := step;
+      GO TO out
+    FI
   OD;
 
+out:
   n flashes
 END;
 
@@ -123,8 +135,12 @@ BEGIN
 
   REF [,]INT grid := lines to grid(lines);
 
-  INT n flashes = simulate(grid, n steps);
-  printf(($"Part 1: number of flashes = ", g(0)l$, n flashes))
+  INT n flashes = simulate(grid, n steps, NIL);
+  printf(($"Part 1: number of flashes = ", g(0)l$, n flashes));
+
+  INT first flash step := -1;
+  simulate(grid, -1, first flash step);
+  printf(($"Part 2: first step where all flash = ", g(0)l$, first flash step))
 END;
 
 main
