@@ -60,13 +60,13 @@ BEGIN
   OD
 END;
 
-PROC simulate = (REF [,]INT grid, INT n steps, REF INT first sync) INT:
+PROC simulate = (REF [,]INT grid, INT max n steps, REF INT total flashes, REF INT first sync) VOID:
 BEGIN
-  [UPB grid, UPB grid[1,]]BOOL flashes;
+  [UPB grid, UPB grid[1,]]BOOL already flashed;
   INT n flashes := 0;
 
   INT step := 0;
-  WHILE step < n steps OR n steps = -1 DO
+  WHILE step < max n steps OR max n steps = -1 DO
     step +:= 1;
 
     # increase all energy levels by 1 #
@@ -77,22 +77,22 @@ BEGIN
     OD;
 
     # do flashes #
-    BOOL one flashed := TRUE;
     FOR i FROM LWB grid TO UPB grid DO
       FOR j FROM LWB grid[i,] TO UPB grid[i,] DO
-        flashes[i,j] := FALSE
+        already flashed[i,j] := FALSE
       OD
     OD;
+    BOOL one flashed := TRUE;
     WHILE one flashed DO
       one flashed := FALSE;
 
       FOR i FROM LWB grid TO UPB grid DO
         FOR j FROM LWB grid[i,] TO UPB grid[i,] DO
           INT e := grid[i,j];
-          IF e > 9 AND NOT flashes[i,j] THEN
+          IF e > 9 AND NOT already flashed[i,j] THEN
             one flashed := TRUE;
             n flashes +:= 1;
-            flashes[i, j] := TRUE;
+            already flashed[i, j] := TRUE;
             increase adjacent(grid, i, j, 1)
           FI
         OD
@@ -103,7 +103,7 @@ BEGIN
     BOOL all flashed := TRUE;
     FOR i FROM LWB grid TO UPB grid DO
       FOR j FROM LWB grid[i,] TO UPB grid[i,] DO
-        IF flashes[i,j] THEN
+        IF already flashed[i,j] THEN
           grid[i,j] := 0
         ELSE
           all flashed := FALSE
@@ -118,7 +118,9 @@ BEGIN
   OD;
 
 out:
-  n flashes
+  IF total flashes :/=: NIL THEN
+    total flashes := n flashes
+  FI
 END;
 
 PROC main = VOID:
@@ -135,11 +137,13 @@ BEGIN
 
   REF [,]INT grid := lines to grid(lines);
 
-  INT n flashes = simulate(grid, n steps, NIL);
+  INT n flashes := -1;
+  simulate(grid, n steps, n flashes, NIL);
   printf(($"Part 1: number of flashes = ", g(0)l$, n flashes));
 
+  grid := lines to grid(lines);
   INT first flash step := -1;
-  simulate(grid, -1, first flash step);
+  simulate(grid, -1, NIL, first flash step);
   printf(($"Part 2: first step where all flash = ", g(0)l$, first flash step))
 END;
 
