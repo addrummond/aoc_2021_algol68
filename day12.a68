@@ -185,7 +185,7 @@ BEGIN
       FOR i FROM 1 TO n outs OF node DO
         REF NODE n := (outs OF node)[i];
         IF NOT (start OF n) THEN
-          # duplicated current record of smalls visited #
+          # duplicate current record of smalls visited #
           REF []INT sv := HEAP [n nodes]INT;
           sv[:] := smalls visited;
 
