@@ -185,12 +185,10 @@ BEGIN
         REF NODE n := (outs OF node)[i];
         IF NOT (start OF n) THEN
           # duplicate current record of smalls visited #
-          REF []INT sv := HEAP [n nodes]INT;
-          sv[:] := smalls visited;
+          REF []INT sv := HEAP [n nodes]INT := smalls visited;
 
           # duplicate current path #
-          REF STRING pp := HEAP STRING;
-          pp +:= p;
+          REF STRING pp := HEAP STRING := p;
 
           recurse(n, pp, sv)
         FI
