@@ -1,0 +1,226 @@
+MODE LINK = STRUCT (
+  STRING from, to
+);
+
+MODE NODE = STRUCT (
+  REF FLEX []REF NODE outs,
+  INT n outs,
+  INT index,
+  STRING label,
+  BOOL small,
+  BOOL start,
+  BOOL end
+);
+
+MODE STRINGTAB = STRUCT (
+  REF FLEX []STRING table,
+  INT n
+);
+
+PROC new stringtab = REF STRINGTAB:
+BEGIN
+  REF STRINGTAB st := HEAP STRINGTAB;
+  table OF st := HEAP FLEX [1:8]STRING;
+  n OF st := 0;
+  st
+END;
+
+PROC get node index = (REF STRINGTAB stringtab, STRING node) INT:
+BEGIN
+  INT r := -1;
+  FOR i FROM 1 TO n OF stringtab DO
+    IF (table OF stringtab)[i] = node THEN
+      r := i;
+      GO TO out
+    FI
+  OD;
+
+  IF r = -1 THEN
+    n OF stringtab +:= 1;
+    IF n OF stringtab > UPB table OF stringtab THEN
+      REF FLEX[]STRING new table = HEAP FLEX [1:2*UPB (table OF stringtab)]STRING;
+      new table[:UPB table OF stringtab] := table OF stringtab;
+      table OF stringtab := new table
+    FI;
+    (table OF stringtab)[n OF stringtab] := node;
+    r := n OF stringtab
+  FI;
+
+out:
+  r
+END;
+
+PROC read links = (REF FILE in, REF BOOL finished reading) REF []LINK:
+BEGIN
+  REF FLEX []LINK links := HEAP FLEX [1:8]LINK;
+
+  INT line i := 1;
+  WHILE
+    NOT finished reading
+  DO
+    STRING line;
+    get(in, (line, newline));
+    
+    STRING from := "";
+    STRING to := "";
+
+    BOOL before dash := TRUE;
+    FOR i FROM LWB line TO UPB line DO
+      IF line[i] = "-" THEN
+        before dash := FALSE
+      ELIF before dash THEN
+        from +:= line[i]
+      ELSE
+        to +:= line[i]
+      FI
+    OD;
+
+    LINK link = (from, to);
+
+    IF line i > UPB links THEN
+      REF FLEX[]LINK new links = HEAP FLEX [2 * UPB links]LINK;
+      new links[:UPB links] := links;
+      links := new links
+    FI;
+    links[line i] := link;
+    line i +:= 1
+  OD;
+
+  REF FLEX []LINK(links) := links[:line i-1];
+  links
+END;
+
+PROC is small = (STRING node) BOOL:
+BEGIN
+  BOOL small := TRUE;
+  FOR i FROM LWB node TO UPB node DO
+    IF ABS(node[i]) < ABS("a") OR ABS(node[i]) > ABS("z") THEN
+      small := FALSE
+    FI
+  OD;
+  small
+END;
+
+PROC add node = (REF FLEX[] REF NODE nodes, REF INT n nodes, REF NODE new node) VOID:
+BEGIN
+  n nodes +:= 1;
+  IF n nodes > UPB nodes THEN
+    REF FLEX[]REF NODE new nodes = HEAP FLEX [1:2*UPB nodes]REF NODE;
+    new nodes[:UPB nodes] := nodes;
+    nodes := new nodes
+  FI;
+  nodes[n nodes] := new node
+END;
+
+PROC links to graph = (REF []LINK links, REF INT n nodes) REF NODE:
+BEGIN
+  REF STRINGTAB st := new stringtab;
+  REF FLEX []REF NODE existing nodes := HEAP FLEX [1:8]REF NODE;
+  n nodes := 2; # start and end #
+
+  INT starti = get node index(st, "start");
+  INT endi = get node index(st, "end");
+  existing nodes[starti] := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, 1, "start", FALSE, TRUE, FALSE);
+  existing nodes[endi] := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, 2, "end", FALSE, FALSE, TRUE);
+
+  FOR i FROM LWB links TO UPB links DO
+    STRING from := from OF links[i];
+    STRING to := to OF links[i];
+    INT fromi := get node index(st, from);
+    INT toi := get node index(st, to);
+
+    IF fromi > n nodes THEN
+      REF NODE new node := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, fromi, from, is small(from), FALSE, FALSE);
+      add node(existing nodes, n nodes, new node)
+    FI;
+
+    IF toi > n nodes THEN
+      REF NODE new node := HEAP NODE := (HEAP FLEX [1:2]REF NODE, 0, toi, to, is small(to), FALSE, FALSE);
+      add node(existing nodes, n nodes, new node)
+    FI;
+
+    add node(outs OF existing nodes[fromi], n outs OF existing nodes[fromi], existing nodes[to i]);
+    add node(outs OF existing nodes[toi], n outs OF existing nodes[toi], existing nodes[from i])
+  OD;
+
+  existing nodes[starti]
+END;
+
+PROC find paths = (REF NODE root, INT n nodes) REF []STRING:
+BEGIN
+  REF FLEX []STRING paths := HEAP FLEX [1:8]STRING;
+  INT n paths := 0;
+
+  PROC recurse = (NODE node, REF STRING p, REF []BOOL smalls visited) VOID:
+  BEGIN
+    BOOL continue := FALSE;
+
+    IF NOT (small OF node) OR (NOT smalls visited[index OF node]) THEN
+      smalls visited[index OF node] := TRUE; # doesn't matter if we set this if it's not small #
+
+      IF p /= "" THEN
+        p +:= ","
+      FI;
+      p +:= (label OF node);
+
+      IF end OF node THEN
+        n paths +:= 1;
+        IF n paths > UPB paths THEN
+          REF []STRING new paths = HEAP[1:2 * UPB paths]STRING;
+          new paths[:UPB paths] := paths;
+          paths := new paths
+        FI;
+        paths[n paths] := p
+      ELSE
+        continue := TRUE
+      FI
+    FI;
+
+    IF continue THEN
+      FOR i FROM 1 TO n outs OF node DO
+        REF NODE n := (outs OF node)[i];
+        IF NOT (start OF n) THEN
+          # duplicated current record of smalls visited #
+          REF []BOOL sv := HEAP [n nodes]BOOL;
+          sv[:] := smalls visited;
+
+          # duplicate current path #
+          REF STRING pp := HEAP STRING;
+          pp +:= p;
+
+          recurse(n, pp, sv)
+        FI
+      OD
+    FI
+  END;
+
+  REF []BOOL sv := HEAP [n nodes]BOOL;
+  FOR i FROM LWB sv TO UPB sv DO
+    sv[i] := FALSE
+  OD;
+  recurse(root, HEAP STRING, sv);
+
+  REF FLEX []STRING(paths) := paths[:n paths];
+  paths
+END;
+
+PROC main = VOID:
+BEGIN
+  FILE in;
+
+  open(in, "data/data12.txt", stand in channel);
+  BOOL finished reading := FALSE;
+  on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+  on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+  REF []LINK links := read links(in, finished reading);
+  close(in);
+
+  INT n nodes := -1;
+  REF NODE root = links to graph(links, REF INT(n nodes));
+
+  REF []STRING paths := find paths(root, n nodes);
+  printf(($"Part 1: number of paths = ", g(0)l$, UPB paths))
+END;
+
+main
