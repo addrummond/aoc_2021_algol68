@@ -29,22 +29,18 @@ BEGIN
 END;
 
 PROC min = (INT a, INT b) INT:
-BEGIN
   IF a < b THEN
     a
   ELSE
     b
-  FI
-END;
+  FI;
 
 PROC max = (INT a, INT b) INT:
-BEGIN
   IF a > b THEN
     a
   ELSE
     b
-  FI
-END;
+  FI;
 
 PROC get grid dimensions = (REF []LINE lines, REF INT xoff, yoff, width, height) VOID:
 BEGIN
