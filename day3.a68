@@ -66,6 +66,7 @@ BEGIN
     FOR j FROM LWB digits TO n DO
       tot +:= IF digits[j][i] = 0 THEN -1 ELSE 1 FI
     OD;
+
     INT ai := 0;
     FOR j FROM LWB digits TO n DO
       IF
