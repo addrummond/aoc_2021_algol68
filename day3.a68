@@ -77,7 +77,7 @@ BEGIN
         digits[ai] := digits[j]
       FI
     OD;
-    n := ai;
+    n := ai
   OD;
 
   INT orat := 0;
