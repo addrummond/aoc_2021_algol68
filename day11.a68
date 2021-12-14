@@ -4,7 +4,7 @@ MODE COORD = STRUCT (
   INT x, y
 );
 
- = (REF FILE in, REF BOOL finished reading) REF []STRING:
+PROC read lines = (REF FILE in, REF BOOL finished reading) REF []STRING:
 BEGIN
   REF FLEX []STRING lines := HEAP FLEX [1:8]STRING;
 
