@@ -81,13 +81,13 @@ BEGIN
     n := ai
   OD;
 
-  INT orat := 0;
+  INT val := 0;
   FOR i FROM LWB digits[1] TO UPB digits[1] DO
-    orat *:= 2;
-    orat +:= digits[1][i]
+    val *:= 2;
+    val +:= digits[1][i]
   OD;
 
-  orat
+  val
 END;
 
 PROC main = VOID:
