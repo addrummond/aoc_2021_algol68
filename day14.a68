@@ -5,7 +5,7 @@ MODE RULE = STRUCT(
 PROC read lines = (REF FILE in, REF BOOL finished reading, REF STRING initial string, REF FLEX []RULE rules) VOID:
 BEGIN
   rules := HEAP FLEX [1:8]RULE;
-  
+
   BOOL initial := TRUE;
   INT n rules := 0;
 
