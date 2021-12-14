@@ -141,7 +141,7 @@ BEGIN
 
   part n(str, rules, 1, 10);
 
-  part n(str, rules, 1, 40)
+  part n(str, rules, 2, 40)
 END;
 
 main
