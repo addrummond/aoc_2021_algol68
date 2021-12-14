@@ -1,0 +1,147 @@
+MODE RULE = STRUCT(
+  CHAR a, b, middle
+);
+
+PROC read lines = (REF FILE in, REF BOOL finished reading, REF STRING initial string, REF FLEX []RULE rules) VOID:
+BEGIN
+  rules := HEAP FLEX [1:8]RULE;
+  
+  BOOL initial := TRUE;
+  INT n rules := 0;
+
+  WHILE
+    NOT finished reading
+  DO
+    IF initial THEN
+      initial := FALSE;
+      get(in, (initial string, newline));
+      get(in, newline)
+    ELSE
+      CHAR a := "0"; # dummy #
+      CHAR b, middle;
+      getf(in, ($1a, 1a, " -> ", 1al$, a, b, middle));
+      IF a /= "0" THEN
+        n rules +:= 1;
+        IF n rules > UPB rules THEN
+          REF FLEX []RULE new rules = HEAP FLEX [2*UPB rules]RULE;
+          new rules[:UPB rules] := rules;
+          rules := new rules
+        FI;
+        rules[n rules] := (a, b, middle)
+      FI
+    FI
+  OD;
+
+  rules := rules[:n rules]
+END;
+
+PROC char index = (CHAR c) INT: ABS(c) - ABS("A") + 1;
+
+PROC initial counts = (STRING s) REF []LONG INT:
+BEGIN
+  REF []LONG INT counts = HEAP[1:26]LONG INT;
+  FOR i FROM LWB counts TO UPB counts DO
+    counts[i] := 0
+  OD;
+  FOR i FROM LWB s TO UPB s DO
+    counts[char index(s[i])] +:= 1
+  OD;
+  counts
+END;
+
+PROC initial adjacencies = (STRING s) REF [,]LONG INT:
+BEGIN
+  REF [,]LONG INT adjacencies = HEAP [1:26,1:26]LONG INT;
+  FOR i FROM LWB adjacencies TO UPB adjacencies DO
+    FOR j FROM LWB adjacencies[1,] TO UPB adjacencies[1,] DO
+      adjacencies[i,j] := 0
+    OD
+  OD;
+  FOR i FROM LWB s TO UPB s - 1 DO
+    CHAR a := s[i];
+    CHAR b := s[i+1];
+    adjacencies[char index(a), char index(b)] +:= 1
+  OD;
+
+  adjacencies
+END;
+
+PROC run = (REF []LONG INT counts, REF [,]LONG INT adjacencies, REF []RULE rules, INT n iterations) VOID:
+BEGIN
+  REF [,]LONG INT tmp adj := HEAP [26,26] LONG INT;
+
+  TO n iterations DO
+    FOR i FROM LWB tmp adj TO UPB tmp adj DO
+      FOR j FROM LWB tmp adj[1,] TO UPB tmp adj[1,] DO
+        tmp adj[i,j] := 0
+      OD
+    OD;
+
+    FOR i FROM LWB rules TO UPB rules DO
+      INT ai := char index(a OF rules[i]);
+      INT bi := char index(b OF rules[i]);
+      INT middlei := char index(middle OF rules[i]);
+
+      LONG INT n := adjacencies[ai, bi];
+      counts[middlei] +:= n;
+      tmp adj[ai, middlei] +:= n;
+      tmp adj[middlei, bi] +:= n
+    OD;
+
+    FOR i FROM LWB rules TO UPB rules DO
+      adjacencies[char index(a OF rules[i]), char index(b OF rules[i])] := 0
+    OD;
+
+    FOR i FROM LWB adjacencies TO UPB adjacencies DO
+      FOR j FROM LWB adjacencies[1,] TO UPB adjacencies[1,] DO
+        adjacencies[i,j] +:= tmp adj[i, j]
+      OD
+    OD
+  OD
+END;
+
+PROC get min max = (REF []LONG INT counts, REF LONG INT min, REF LONG INT max) VOID:
+BEGIN
+  min := 0;
+  max := - max int;
+  FOR i FROM LWB counts TO UPB counts DO
+    IF min = 0 OR (counts[i] /= 0 AND counts[i] < min) THEN
+      min := counts[i]
+    FI;
+    IF counts[i] > max THEN
+      max := counts[i]
+    FI
+  OD
+END;
+
+PROC part n = (STRING str, REF []RULE rules, INT part, INT n iterations) VOID:
+BEGIN
+  REF []LONG INT counts := initial counts(str);
+  REF [,]LONG INT adjacencies := initial adjacencies(str);
+
+  run(counts, adjacencies, rules, n iterations);
+  LONG INT min, max;
+  get min max(counts, min, max);
+
+  printf(($"Part ", g(0), ": max - min = ", g(0)l$, part, max - min))
+END;
+
+PROC main = VOID:
+BEGIN
+  FILE in;
+
+  open(in, "data/data14.txt", stand in channel);
+  BOOL finished reading := FALSE;
+  on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+  on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+  REF FLEX []RULE rules := LOC FLEX [1:0]RULE;
+  STRING str;
+  read lines(in, finished reading, str, rules);
+
+  part n(str, rules, 1, 10);
+
+  part n(str, rules, 1, 40)
+END;
+
+main
