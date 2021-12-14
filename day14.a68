@@ -20,15 +20,13 @@ BEGIN
       CHAR a := "0"; # dummy #
       CHAR b, middle;
       getf(in, ($1a, 1a, " -> ", 1al$, a, b, middle));
-      IF a /= "0" THEN
-        n rules +:= 1;
-        IF n rules > UPB rules THEN
-          REF FLEX []RULE new rules = HEAP FLEX [2*UPB rules]RULE;
-          new rules[:UPB rules] := rules;
-          rules := new rules
-        FI;
-        rules[n rules] := (a, b, middle)
-      FI
+      n rules +:= 1;
+      IF n rules > UPB rules THEN
+        REF FLEX []RULE new rules = HEAP FLEX [2*UPB rules]RULE;
+        new rules[:UPB rules] := rules;
+        rules := new rules
+      FI;
+      rules[n rules] := (a, b, middle)
     FI
   OD;
 
