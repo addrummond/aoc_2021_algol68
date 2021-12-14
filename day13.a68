@@ -268,6 +268,8 @@ BEGIN
   REF FLEX []FOLD folds := LOC FLEX [1:0]FOLD;
   read lines(in, finished reading, coords, folds);
 
+  close(in);
+
   REF HASH grid := new hash(UPB coords OVER 8);
   FOR i FROM LWB coords TO UPB coords DO
     insert(grid, coords[i])

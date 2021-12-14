@@ -137,6 +137,8 @@ BEGIN
   STRING str;
   read lines(in, finished reading, str, rules);
 
+  close(in);
+
   part n(str, rules, 1, 10);
 
   part n(str, rules, 1, 40)
