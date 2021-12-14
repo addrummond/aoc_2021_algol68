@@ -1,40 +1,113 @@
-FILE in;
-
-open(in, "data/data3.txt", stand in channel);
-BOOL finished reading := FALSE;
-on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
-
 INT number of digits = 12;
 
-[1:number of digits] INT ones;
-FOR i FROM 1 TO number of digits DO
-  ones[i] := 0
-OD;
+PROC read digits = (REF FILE in, REF BOOL finished reading) REF []REF[]INT:
+BEGIN
+  REF FLEX []REF[]INT digits := HEAP [1:8]REF[]INT;
+  INT n := 0;
+  WHILE NOT finished reading DO
+    REF []INT ds := HEAP [1:number of digits]INT;
+    getf(in, ($ n(number of digits)(1d)l $, ds));
+    n +:= 1;
+    IF n > UPB digits THEN
+      REF FLEX []REF[]INT new digits = HEAP FLEX [1:2* UPB digits]REF[]INT;
+      new digits[:UPB digits] := digits;
+      digits := new digits
+    FI;
+    digits[n] := ds
+  OD;
 
-WHILE
-  [1:number of digits] INT digits;
-  getf(in, ($ n(number of digits)(c("0", "1"))l $, digits));
-  NOT finished reading
-DO
+  REF FLEX []REF[]INT(digits) := digits[1:n];
+  digits
+END;
+
+PROC power consumption = (REF []REF[]INT digits) INT:
+BEGIN
+  [1:number of digits] INT ones;
+  FOR i FROM 1 TO number of digits DO
+    ones[i] := 0
+  OD;
+
+  FOR i FROM LWB digits TO UPB digits DO
+    FOR j FROM LWB digits[i] TO UPB digits[i] DO
+      CASE digits[i][j] + 1 IN
+        ones[j] -:= 1,
+        ones[j] +:= 1
+      ESAC
+    OD
+  OD;
+
+  INT gamma := 0;
+  INT epsilon := 0;
+
   FOR d FROM 1 TO number of digits DO
-    CASE digits[d] IN
-      ones[d] -:= 1,
-      ones[d] +:= 1
-    ESAC
-  OD
-OD;
+    gamma *:= 2;
+    epsilon *:= 2;
+    IF ones[d] > 0 THEN
+      gamma +:= 1
+    ELSE
+      epsilon +:= 1
+    FI
+  OD;
 
-close(in);
+  gamma * epsilon
+END;
 
-INT gamma := 0;
-INT epsilon := 0;
+PROC number matching bit criteria = (REF []REF[]INT original digits, BOOL most) INT:
+BEGIN
+  REF []REF[]INT digits := HEAP [1:UPB original digits]REF[]INT;
+  FOR i FROM LWB digits TO UPB digits DO
+    digits[i] := HEAP [1:UPB original digits[i]]INT;
+    digits[i][:] := original digits[i]
+  OD;
 
-FOR d FROM 1 TO number of digits DO
-  IF ones[d] > 0 THEN
-    gamma := gamma + ABS(BIN(1) SHL (number of digits - d))
-  ELSE
-    epsilon := epsilon + ABS(BIN(1) SHL (number of digits - d))
-  FI
-OD;
+  INT n := UPB digits;
+  FOR i FROM 1 TO number of digits WHILE n > 1 DO
+    INT tot := 0;
+    FOR j FROM LWB digits TO n DO
+      tot +:= IF digits[j][i] = 0 THEN -1 ELSE 1 FI
+    OD;
+    INT ai := 0;
+    FOR j FROM LWB digits TO n DO
+      IF
+        (most AND ((tot >= 0 AND digits[j][i] = 1) OR (tot < 0 AND digits[j][i] = 0)))
+        OR
+        ((NOT most) AND ((tot < 0 AND digits[j][i] = 1) OR (tot >= 0 AND digits[j][i] = 0)))
+      THEN
+        ai +:= 1;
+        digits[ai] := digits[j]
+      FI
+    OD;
+    n := ai;
+  OD;
 
-printf(($"Power consumption = ", g(0)l$, gamma * epsilon))
+  INT orat := 0;
+  FOR i FROM LWB digits[1] TO UPB digits[1] DO
+    orat *:= 2;
+    orat +:= digits[1][i]
+  OD;
+
+  orat
+END;
+
+PROC main = VOID:
+BEGIN
+  FILE in;
+
+  open(in, "data/data3.txt", stand in channel);
+  BOOL finished reading := FALSE;
+  on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+  REF []REF[]INT digits := read digits(in, finished reading);
+
+  close(in);
+
+  printf(($"Part 1: power consumption = ", g(0)l$, power consumption(digits)));
+
+  INT oxygen = number matching bit criteria(digits, TRUE);
+  INT co2 = number matching bit criteria(digits, FALSE);
+  INT life support = oxygen * co2;
+
+  printf(($"Part 2: life support rating = ", g(0)l$, life support))
+END;
+
+main
