@@ -1,11 +1,10 @@
 MODE COORD = STRUCT (
-  INT x, y,
-  BOOL deleted
+  INT x, y
 );
 
 OP = = (COORD c1, COORD c2) BOOL: (x OF c1 = x OF c2) AND (y OF c1 = y OF c2);
 
-# A pauper's append-only hash set with a fixed (but parameterizable) bucket size. #
+# A hash set with a fixed (but parameterizable) bucket size. #
 MODE HASH = STRUCT (
   INT hash bits,
   REF []REF FLEX[]COORD buckets,
@@ -17,8 +16,6 @@ MODE FOLD = STRUCT(
   INT n,
   CHAR along
 );
-
-PROC coord = (INT x, INT y) COORD: (x, y, FALSE);
 
 PROC new hash = (INT hash bits) REF HASH:
 BEGIN
@@ -56,10 +53,6 @@ BEGIN
   BOOL found it := FALSE;
   FOR i FROM 1 TO (n items OF hash)[key] DO
     IF bucket[i] = c THEN
-      IF deleted OF bucket[i] THEN
-        (deleted OF bucket[i]) := FALSE;
-        (size OF hash) +:= 1
-      FI;
       found it := TRUE;
       GO TO out
     FI
@@ -74,20 +67,20 @@ out:
       new items[:UPB (buckets OF hash)[key]] := (buckets OF hash)[key];
       (buckets OF hash)[key] := new items
     FI;
-    COORD ensure nondeleted := c;
-    (deleted OF ensure nondeleted) := FALSE;
-    (buckets OF hash)[key][(n items OF hash)[key]] := ensure nondeleted
+    (buckets OF hash)[key][(n items OF hash)[key]] := c
   FI
 END;
 
 PROC delete = (REF HASH hash, COORD c) VOID:
 BEGIN
   INT key := hash func(hash bits OF hash, c);
-  REF FLEX[]COORD bucket := (buckets OF hash)[key];
+  REF FLEX[]COORD bucket = (buckets OF hash)[key];
+  INT n items = (n items OF hash)[key];
 
-  FOR i FROM 1 TO (n items OF hash)[key] DO
+  FOR i FROM 1 TO n items DO
     IF bucket[i] = c THEN
-      (deleted OF bucket[i]) := TRUE;
+      bucket[i:n items-1] := bucket[i+1:n items];
+      (n items OF hash)[key] -:= 1;
       (size OF hash) -:= 1;
       GO TO out
     FI
@@ -103,7 +96,7 @@ BEGIN
   BOOL found it := FALSE;
   FOR i FROM 1 TO (n items OF hash)[key] DO
     IF bucket[i] = c THEN
-      found it := (NOT (deleted OF bucket[i]));
+      found it := TRUE;
       GO TO out
     FI
   OD;
@@ -117,9 +110,7 @@ BEGIN
   FOR i FROM LWB (buckets OF hash) TO UPB (buckets OF hash) DO
     FOR j FROM 1 TO (n items OF hash)[i] DO
       COORD c := (buckets OF hash)[i][j];
-      IF NOT (deleted OF c) THEN
-        iter func(c)
-      FI
+      iter func(c)
     OD
   OD
 END;
@@ -149,7 +140,7 @@ BEGIN
           new coords[:UPB coords] := coords;
           coords := new coords
         FI;
-        coords[n coords] := coord(x, y)
+        coords[n coords] := (x, y)
       FI
     ELSE
       CHAR axis := "0"; # dummy #
@@ -184,7 +175,7 @@ BEGIN
 
   FOR i FROM 1 TO n to reflect DO
     COORD c := to reflect[i];
-    COORD new := coord(x OF c, yline - ((y OF c) - yline));
+    COORD new := (x OF c, yline - ((y OF c) - yline));
     delete(grid, c);
     insert(grid, new)
   OD
@@ -203,7 +194,7 @@ BEGIN
 
   FOR i FROM 1 TO n to reflect DO
     COORD c := to reflect[i];
-    COORD new := coord(xline - ((x OF c) - xline), y OF c);
+    COORD new := (xline - ((x OF c) - xline), y OF c);
     delete(grid, c);
     insert(grid, new)
   OD
@@ -245,7 +236,7 @@ BEGIN
 
   FOR y FROM ymin TO ymax DO
     FOR x FROM xmin TO xmax DO
-      IF exists(grid, coord(x, y)) THEN
+      IF exists(grid, (x, y)) THEN
         print("#")
       ELSE
         print("-")
