@@ -1,0 +1,271 @@
+MODE COORD = STRUCT (
+  INT x, y
+);
+
+OP = = (COORD c1, COORD c2) BOOL: (x OF c1 = x OF c2) AND (y OF c1 = y OF c2);
+OP /= = (COORD c1, COORD c2) BOOL: NOT (c1 = c2);
+
+# A hash set with a fixed (but parameterizable) bucket size. #
+MODE HASH = STRUCT (
+  INT hash bits,
+  REF []REF FLEX[]COORD buckets,
+  REF []INT n items,
+  INT size
+);
+
+MODE FOLD = STRUCT(
+  INT n,
+  CHAR along
+);
+
+PROC new hash = (INT min n buckets) REF HASH:
+BEGIN
+  INT hash bits := 1;
+  WHILE ABS(BIN(1) SHL (hash bits - 1)) < min n buckets DO
+    hash bits +:= 1
+  OD;
+
+  INT n buckets := ABS(BIN(1) SHL (hash bits - 1));
+  REF []REF FLEX[]COORD buckets := HEAP [n buckets]REF FLEX[]COORD;
+  FOR i FROM 1 TO n buckets DO
+    buckets[i] := HEAP FLEX [1:4]COORD
+  OD;
+  REF []INT n items := HEAP [1:n buckets]INT;
+  FOR i FROM 1 TO n buckets DO
+    n items[i] := 0
+  OD;
+
+  HEAP HASH := (
+    hash bits,
+    buckets,
+    n items,
+    0
+  )
+END;
+
+PROC hash func = (INT hash bits, COORD c) INT:
+BEGIN
+  INT hashval := ABS(BIN(ABS(x OF c)) XOR BIN(ABS(y OF c)));
+  BITS mask := BIN(ABS(BIN(1) SHL (hash bits - 1)) - 1);
+  ABS(BIN(hashval) AND mask) + 1
+END;
+
+PROC insert = (REF HASH hash, COORD c) VOID:
+BEGIN
+  INT key := hash func(hash bits OF hash, c);
+  REF FLEX[]COORD bucket := (buckets OF hash)[key];
+
+  # is it already here? #
+  BOOL found it := FALSE;
+  FOR i FROM 1 TO (n items OF hash)[key] DO
+    IF bucket[i] = c THEN
+      found it := TRUE;
+      GO TO out
+    FI
+  OD;
+out:
+
+  IF NOT found it THEN
+    (size OF hash) +:= 1;
+    (n items OF hash)[key] +:= 1;
+    IF (n items OF hash)[key] > UPB (buckets OF hash)[key] THEN
+      REF FLEX[]COORD new items = HEAP FLEX [2 * UPB (buckets OF hash)[key]]COORD;
+      new items[:UPB (buckets OF hash)[key]] := (buckets OF hash)[key];
+      (buckets OF hash)[key] := new items
+    FI;
+    (buckets OF hash)[key][(n items OF hash)[key]] := c
+  FI
+END;
+
+PROC delete = (REF HASH hash, COORD c) VOID:
+BEGIN
+  INT key := hash func(hash bits OF hash, c);
+  REF FLEX[]COORD bucket = (buckets OF hash)[key];
+  INT n items = (n items OF hash)[key];
+
+  FOR i FROM 1 TO n items DO
+    IF bucket[i] = c THEN
+      bucket[i:n items-1] := bucket[i+1:n items];
+      (n items OF hash)[key] -:= 1;
+      (size OF hash) -:= 1;
+      GO TO out
+    FI
+  OD;
+
+out: EMPTY
+END;
+
+PROC exists = (REF HASH hash, COORD c) BOOL:
+BEGIN
+  INT key := hash func(hash bits OF hash, c);
+  REF FLEX[]COORD bucket = (buckets OF hash)[key];
+
+  BOOL found it := FALSE;
+  FOR i FROM 1 TO (n items OF hash)[key] DO
+    IF bucket[i] = c THEN
+      found it := TRUE;
+      GO TO out
+    FI
+  OD;
+
+out:
+  found it
+END;
+
+PROC for each = (REF HASH hash, PROC (COORD) VOID iter func) VOID:
+BEGIN
+  FOR i FROM LWB (buckets OF hash) TO UPB (buckets OF hash) DO
+    FOR j FROM 1 TO (n items OF hash)[i] DO
+      COORD c := (buckets OF hash)[i][j];
+      iter func(c)
+    OD
+  OD
+END;
+
+PROC in range = (REF [,]INT grid, COORD c) BOOL: (x OF c) > 0 AND (x OF c) <= UPB grid AND (y OF c) > 0 AND (y OF c) <= UPB grid[1,];
+
+# assumes source is 1,1 and dest is N,N in NxN grid #
+PROC dijkstra := (REF [,]INT grid) REF []COORD:
+BEGIN
+  REF HASH q := new hash(UPB grid);
+
+  REF [,]INT dist := HEAP [UPB grid, UPB grid[1,]]INT;
+  REF [,]COORD prev := HEAP [UPB grid, UPB grid[1,]]COORD;
+
+  REF FLEX []COORD path := HEAP FLEX [1:8]COORD;
+  INT n path elems := 0;
+
+  COORD undefined coord = (-max int, -max int);
+
+  FOR i FROM LWB grid TO UPB grid DO
+    FOR j FROM LWB grid[1,] TO UPB grid[1,] DO
+      dist[i,j] := max int;
+      prev[i,j] := undefined coord;
+      insert(q, (i, j))
+    OD
+  OD;
+
+  dist[1,1] := 0;
+
+  WHILE size OF q > 0 DO
+    INT min dist := max int;
+    COORD u := undefined coord;
+    for each(q, (COORD c) VOID: BEGIN
+      IF dist[x OF c, y OF c] < min dist THEN
+        min dist := dist[x OF c, y OF c];
+        u := c
+      FI
+    END);
+
+    delete(q, u);
+
+    IF (x OF u) = UPB grid AND (y OF u) = UPB grid[1,] THEN
+      WHILE u /= undefined coord DO
+        n path elems +:= 1;
+        IF n path elems > UPB path THEN
+          REF FLEX []COORD new path = HEAP FLEX[1:2*UPB path]COORD;
+          new path[:UPB path] := path;
+          path := new path
+        FI;
+        path[n path elems] := u;
+        u := prev[x OF u, y OF u]
+      OD;
+      GO TO out
+    FI;
+
+    []COORD neighbors = ((x OF u, (y OF u) - 1), (x OF u, (y OF u) + 1), ((x OF u) -1, y OF u), ((x OF u) + 1, y OF u));
+    FOR i FROM LWB neighbors TO UPB neighbors DO
+      COORD v := neighbors[i];
+
+      IF IF in range(grid, v) THEN exists(q, v) ELSE FALSE FI THEN
+        INT alt := dist[x OF u, y OF u] + grid[x OF v, y OF v];
+        IF alt < dist[x OF v, y OF v] THEN
+          dist[x OF v, y OF v] := alt;
+          prev[x OF v, y OF v] := u
+        FI
+      FI
+    OD
+  OD;
+
+out:
+  REF FLEX []COORD(path) := path[1:n path elems];
+  path
+END;
+
+PROC read grid = (REF FILE in, REF BOOL finished reading) REF [,]INT:
+BEGIN
+  REF FLEX []REF []INT lines := HEAP FLEX [1:8]REF []INT;
+  INT n lines := 0;
+
+  WHILE
+    NOT finished reading
+  DO
+    STRING s;
+    get(in, (s, newline));
+    REF []INT ns := HEAP [1:UPB s]INT;
+    FOR i FROM LWB s TO UPB s DO
+      ns[i] := ABS(s[i]) - ABS("0")
+    OD;
+
+    n lines +:= 1;
+    IF n lines > UPB lines THEN
+      REF FLEX []REF []INT new lines = HEAP FLEX [2*UPB lines]REF []INT;
+      new lines[:UPB lines] := lines;
+      lines := new lines
+    FI;
+    lines[n lines] := ns
+  OD;
+
+  REF [,]INT grid = HEAP [UPB lines[1], n lines]INT;
+  FOR i FROM LWB lines[1] TO UPB lines[1] DO
+    FOR j FROM LWB lines TO n lines DO
+      grid[i, j] := lines[j][i]
+    OD
+  OD;
+
+  grid
+END;
+
+PROC debug print grid and path = (REF [,]INT grid, REF []COORD path) VOID:
+BEGIN
+  FOR y FROM 1 TO UPB grid[1,] DO
+    FOR x FROM 1 TO UPB grid DO
+      BOOL in path := FALSE;
+      FOR i FROM LWB path TO UPB path DO
+        IF x OF path[i] = x AND y OF path[i] = y THEN
+          in path := TRUE;
+          GO TO out
+        FI
+      OD;
+      out:
+      IF in path THEN
+        print(("*"))
+      ELSE
+        printf(($d$, grid[x,y]))
+      FI
+    OD;
+    print(newline)
+  OD
+END;
+
+PROC main := VOID:
+BEGIN
+  FILE in;
+
+  open(in, "data/data15.txt", stand in channel);
+  BOOL finished reading := FALSE;
+  on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+  on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+  REF [,]INT grid = read grid(in, finished reading);
+  REF []COORD path = dijkstra(grid);
+
+  INT tot := 0;
+  FOR i FROM LWB path TO UPB path DO
+    tot +:= grid[x OF path[i], y OF path[i]]
+  OD;
+  tot -:= grid[1,1]; # start position is ignored #
+  printf(($"Part 1: lowest total risk of any path = ", g(0)l$, tot))
+END;
+
+main
