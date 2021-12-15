@@ -17,8 +17,13 @@ MODE FOLD = STRUCT(
   CHAR along
 );
 
-PROC new hash = (INT hash bits) REF HASH:
+PROC new hash = (INT min n buckets) REF HASH:
 BEGIN
+  INT hash bits := 1;
+  WHILE ABS(BIN(1) SHL (hash bits - 1)) < min n buckets DO
+    hash bits +:= 1
+  OD;
+
   INT n buckets := ABS(BIN(1) SHL (hash bits - 1));
   REF []REF FLEX[]COORD buckets := HEAP [n buckets]REF FLEX[]COORD;
   FOR i FROM 1 TO n buckets DO
