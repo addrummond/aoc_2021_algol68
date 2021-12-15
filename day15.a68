@@ -173,7 +173,8 @@ BEGIN
       GO TO out
     FI;
 
-    []COORD neighbors = ((x OF u, (y OF u) - 1), (x OF u, (y OF u) + 1), ((x OF u) -1, y OF u), ((x OF u) + 1, y OF u));
+    # The best path will always go either right or down at each step. #
+    []COORD neighbors = ((x OF u, (y OF u) + 1), ((x OF u) + 1, y OF u));
     FOR i FROM LWB neighbors TO UPB neighbors DO
       COORD v := neighbors[i];
 
