@@ -5,8 +5,6 @@ MODE COORD = STRUCT (
 OP = = (COORD c1, COORD c2) BOOL: (x OF c1 = x OF c2) AND (y OF c1 = y OF c2);
 OP /= = (COORD c1, COORD c2) BOOL: NOT (c1 = c2);
 
-PROC in range = (INT width, height, COORD c) BOOL: (x OF c) > 0 AND (x OF c) <= width AND (y OF c) > 0 AND (y OF c) <= height;
-
 MODE ENTRY = STRUCT(
   COORD c,
   INT d
@@ -94,8 +92,11 @@ BEGIN
   OD
 END;
 
+PROC in range = (INT width, height, COORD c) BOOL:
+  (x OF c) > 0 AND (x OF c) <= width AND (y OF c) > 0 AND (y OF c) <= height;
+
 # assumes source is 1,1 and dest is N,M in NxM grid #
-PROC dijkstra := (INT width, INT height, PROC (INT, INT) INT get) REF []COORD:
+PROC dijkstra := (INT width, INT height, PROC (INT, INT) INT get) INT:
 BEGIN
   INT max d = (width + height) * 9;
   INT n bins := width + height;
@@ -107,10 +108,9 @@ BEGIN
   REF [,]INT dist := HEAP [width, height]INT;
   REF [,]COORD prev := HEAP [width, height]COORD;
 
-  REF FLEX []COORD path := HEAP FLEX [1:8]COORD;
-  INT n path elems := 0;
-
   COORD undefined coord = (-max int, -max int);
+
+  INT length := -get(1,1);
 
   INT bogus n per dist := (((width * height) OVER max d) * 6) OVER 5;
   INT bogus d := max d + 1;
@@ -148,13 +148,7 @@ BEGIN
 
     IF (x OF u) = width AND (y OF u) = height THEN
       WHILE u /= undefined coord DO
-        n path elems +:= 1;
-        IF n path elems > UPB path THEN
-          REF FLEX []COORD new path = HEAP FLEX[1:2*UPB path]COORD;
-          new path[:UPB path] := path;
-          path := new path
-        FI;
-        path[n path elems] := u;
+        length +:= get(x OF u, y OF u);
         u := prev[x OF u, y OF u]
       OD;
       GO TO out
@@ -178,8 +172,7 @@ BEGIN
   OD;
 
 out:
-  REF FLEX []COORD(path) := path[1:n path elems];
-  path
+  length
 END;
 
 PROC read grid = (REF FILE in, REF BOOL finished reading) REF [,]INT:
@@ -226,18 +219,13 @@ BEGIN
   on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
 
   REF [,]INT grid = read grid(in, finished reading);
-  REF []COORD part 1 path = dijkstra(
+  INT part 1 dist = dijkstra(
     UPB grid,
     2 UPB grid,
     (INT x, INT y) INT: grid[x,y]
   );
 
-  INT part 1 tot := 0;
-  FOR i FROM LWB part 1 path TO UPB part 1 path DO
-    part 1 tot +:= grid[x OF part 1 path[i], y OF part 1 path[i]]
-  OD;
-  part 1 tot -:= grid[1,1]; # start position is ignored #
-
+  # get the value in the expanded 5x5 grid without explicitly constructing it. #
   PROC part 2 get = (INT x, INT y) INT:
   BEGIN
     INT extra := ((x-1) OVER UPB grid) + ((y-1) OVER 2 UPB grid);
@@ -245,20 +233,14 @@ BEGIN
     ((v - 1) MOD 9) + 1
   END;
 
-  REF []COORD part 2 path = dijkstra(
+  INT part 2 dist = dijkstra(
     UPB grid * 5,
     (2 UPB grid) * 5,
     part 2 get
   );
 
-  INT part 2 tot := 0;
-  FOR i FROM LWB part 2 path TO UPB part 2 path DO
-    part 2 tot +:= part 2 get(x OF part 2 path[i], y OF part 2 path[i])
-  OD;
-  part 2 tot -:= grid[1,1];
-
-  printf(($"Part 1: lowest total risk of any path = ", g(0)l$, part 1 tot));
-  printf(($"Part 2: lowest total risk of any path = ", g(0)l$, part 2 tot))
+  printf(($"Part 1: lowest total risk of any path = ", g(0)l$, part 1 dist));
+  printf(($"Part 2: lowest total risk of any path = ", g(0)l$, part 2 dist))
 END;
 
 main
