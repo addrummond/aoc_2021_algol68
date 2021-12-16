@@ -7,12 +7,102 @@ OP /= = (COORD c1, COORD c2) BOOL: NOT (c1 = c2);
 
 PROC in range = (INT width, height, COORD c) BOOL: (x OF c) > 0 AND (x OF c) <= width AND (y OF c) > 0 AND (y OF c) <= height;
 
+MODE ENTRY = STRUCT(
+  COORD c,
+  INT d
+);
+
+MODE BIN = STRUCT(
+  REF FLEX []ENTRY entries,
+  INT n
+);
+
+MODE PQ = STRUCT(
+  REF []BIN bins,
+  INT bin size,
+  INT n
+);
+
+PROC new pq = (INT bin size, INT n bins) REF PQ:
+BEGIN
+  REF []BIN bins = HEAP [n bins]BIN;
+  FOR i FROM LWB bins TO UPB bins DO
+    bins[i] := HEAP BIN := (HEAP FLEX [1:2]ENTRY, 0)
+  OD;
+  HEAP PQ := (bins, bin size, 0)
+END;
+
+PROC pop = (REF PQ pq) COORD:
+BEGIN
+  COORD ret := (-max int, -max int);
+  FOR i FROM LWB (bins OF pq) TO UPB (bins OF pq) WHILE (x OF ret) = - max int DO
+    IF (n OF (bins OF pq)[i]) > 0 THEN
+      # Find the minimum item in this bin and remove it. #
+      INT min := max int;
+      COORD min c := (-max int, -max int);
+      INT min i := 0;
+      FOR j FROM 1 TO n OF (bins OF pq)[i] DO
+        INT d := d OF (entries OF (bins OF pq)[i])[j];
+        IF d < min THEN
+          min := d;
+          min c := c OF (entries OF (bins OF pq)[i])[j];
+          min i := j
+        FI
+      OD;
+      ret := c OF (entries OF (bins OF pq)[i])[min i];
+      (entries OF (bins OF pq)[i])[min i:(n OF (bins OF pq)[i])-1] := (entries OF (bins OF pq)[i])[min i+1:(n OF (bins OF pq)[i])];
+      (n OF (bins OF pq)[i]) -:= 1
+    FI
+  OD;
+
+  (n OF pq) -:= 1;
+  ret
+END;
+
+PROC insert = (REF PQ pq, COORD c, INT d) VOID:
+BEGIN
+  INT bini := (d OVER (bin size OF pq)) + 1;
+  IF bini > UPB (bins OF pq) THEN
+    bini := UPB (bins OF pq)
+  FI;
+  REF FLEX []ENTRY entries := entries OF ((bins OF pq)[bini]);
+  (n OF (bins OF pq)[bini]) +:= 1;
+  IF (n OF (bins OF pq)[bini]) > UPB entries OF (bins OF pq)[bini] THEN
+    REF FLEX []ENTRY new entries = HEAP FLEX [1:2*UPB entries OF (bins OF pq)[bini]]ENTRY;
+    new entries[:UPB entries OF (bins OF pq)[bini]] := entries OF (bins OF pq)[bini];
+    (entries OF (bins OF pq)[bini]) := new entries
+  FI;
+  (entries OF (bins OF pq)[bini])[(n OF (bins OF pq)[bini])] := (c, d);
+  (n OF pq) +:= 1
+END;
+
+PROC del by d = (REF PQ pq, COORD c, INT d) VOID:
+BEGIN
+  INT bini := (d OVER (bin size OF pq)) + 1;
+  IF bini > UPB (bins OF pq) THEN
+    bini := UPB (bins OF pq)
+  FI;
+  REF FLEX []ENTRY entries := entries OF (bins OF pq)[bini];
+  BOOL cnt := TRUE;
+  FOR i FROM 1 TO (n OF (bins OF pq)[bini]) WHILE cnt DO
+    IF c OF entries[i] = c THEN
+      cnt := FALSE;
+      entries[i:(n OF (bins OF pq)[bini])-1] := entries[i+1:(n OF (bins OF pq)[bini])];
+      (n OF (bins OF pq)[bini]) -:= 1;
+      (n OF pq) -:= 1
+    FI
+  OD
+END;
+
 # assumes source is 1,1 and dest is N,M in NxM grid #
 PROC dijkstra := (INT width, INT height, PROC (INT, INT) INT get) REF []COORD:
 BEGIN
-  REF []COORD q := HEAP [1:width * height]COORD;
+  INT max d = (width + height) * 9;
+  INT n bins := width + height;
+  INT bin size = max d OVER n bins;
+
+  REF PQ q := new pq(bin size, n bins * 2);
   REF [,]BOOL in q := HEAP [width, height]BOOL;
-  INT q n := 0;
 
   REF [,]INT dist := HEAP [width, height]INT;
   REF [,]COORD prev := HEAP [width, height]COORD;
@@ -22,33 +112,38 @@ BEGIN
 
   COORD undefined coord = (-max int, -max int);
 
+  INT bogus n per dist := (((width * height) OVER max d) * 6) OVER 5;
+  INT bogus d := max d + 1;
+  INT nc := 0;
   FOR i FROM 1 TO width DO
     FOR j FROM 1 TO height DO
-      dist[i,j] := max int;
       prev[i,j] := undefined coord;
-      q n +:= 1;
-      q[q n] := (i, j);
+
+      IF i = 1 AND j = 1 THEN
+        dist[i, j] := 0;
+        insert(q, (i, j), 0)
+      ELSE
+        # rather than setting all of these distances to max int,
+          set them to distinct 'infinite' values so that they don't
+          all cluster in the same bin. #
+        dist[i, j] := bogus d;
+        insert(q, (i, j), bogus d);
+        nc +:= 1;
+        IF nc = bogus n per dist THEN
+          bogus d +:= 1;
+          nc := 0
+        FI
+      FI;
       in q[i, j] := TRUE
     OD
   OD;
 
-  dist[1,1] := 0;
+  WHILE n OF q > 0 DO
+    IF (n OF q) MOD 1000 = 0 THEN
+      printf(($"Queue size: ", g(0)l$, n OF q))
+    FI;
 
-  WHILE q n > 0 DO
-    INT min dist := max int;
-    COORD u := undefined coord;
-    INT ui := -1;
-    FOR i FROM 1 TO q n DO
-      COORD c = q[i];
-      IF dist[x OF c, y OF c] < min dist THEN
-        min dist := dist[x OF c, y OF c];
-        u := c;
-        ui := i
-      FI;
-    OD;
-
-    q[ui:q n -1] := q[ui+1:q n];
-    q n -:= 1;
+    COORD u := pop(q);
     in q[x OF u, y OF u] := FALSE;
 
     IF (x OF u) = width AND (y OF u) = height THEN
@@ -72,7 +167,10 @@ BEGIN
       IF IF in range(width, height, v) THEN in q[x OF v, y OF v] ELSE FALSE FI THEN
         INT alt := dist[x OF u, y OF u] + get(x OF v, y OF v);
         IF alt < dist[x OF v, y OF v] THEN
+          del by d(q, v, dist[x OF v, y OF v]);
           dist[x OF v, y OF v] := alt;
+          insert(q, v, alt);
+
           prev[x OF v, y OF v] := u
         FI
       FI
@@ -118,28 +216,6 @@ BEGIN
   grid
 END;
 
-PROC debug print grid and path = (REF [,]INT grid, REF []COORD path) VOID:
-BEGIN
-  FOR y FROM 1 TO 2 UPB grid DO
-    FOR x FROM 1 TO UPB grid DO
-      BOOL in path := FALSE;
-      FOR i FROM LWB path TO UPB path DO
-        IF x OF path[i] = x AND y OF path[i] = y THEN
-          in path := TRUE;
-          GO TO out
-        FI
-      OD;
-      out:
-      IF in path THEN
-        print(("*"))
-      ELSE
-        printf(($d$, grid[x,y]))
-      FI
-    OD;
-    print(newline)
-  OD
-END;
-
 PROC main := VOID:
 BEGIN
   FILE in;
@@ -161,7 +237,6 @@ BEGIN
     part 1 tot +:= grid[x OF part 1 path[i], y OF part 1 path[i]]
   OD;
   part 1 tot -:= grid[1,1]; # start position is ignored #
-  printf(($"Part 1: lowest total risk of any path = ", g(0)l$, part 1 tot));
 
   PROC part 2 get = (INT x, INT y) INT:
   BEGIN
@@ -180,7 +255,9 @@ BEGIN
   FOR i FROM LWB part 2 path TO UPB part 2 path DO
     part 2 tot +:= part 2 get(x OF part 2 path[i], y OF part 2 path[i])
   OD;
-  part 2 tot -:= grid[1,1]; # start position is ignored #
+  part 2 tot -:= grid[1,1];
+
+  printf(($"Part 1: lowest total risk of any path = ", g(0)l$, part 1 tot));
   printf(($"Part 2: lowest total risk of any path = ", g(0)l$, part 2 tot))
 END;
 
