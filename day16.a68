@@ -1,0 +1,221 @@
+MODE PACKET = STRUCT(
+  INT version,
+  INT type,
+  LONG INT value,
+  REF []REF PACKET children
+);
+
+PROC debug print packet = (REF PACKET packet, INT indent n) VOID:
+BEGIN
+  PROC indent = VOID:
+    TO indent n DO
+      print("  ")
+    OD;
+
+  indent;
+  printf(($"v = ", g(0)l$, version OF packet));
+  indent;
+  printf(($"t = ", g(0)l$, type OF packet));
+  indent;
+  IF UPB children OF packet = 0 THEN
+    printf(($"n = ", g(0)l$, value OF packet))
+  ELSE
+    INT new indent n = indent n + 1;
+    FOR i FROM LWB children OF packet TO UPB children OF packet DO
+      indent;
+      print(("  ----", newline));
+      debug print packet((children OF packet)[i], new indent n)
+    OD
+  FI
+END;
+
+# Dealing with big endian stuff makes my head hurt, so we mostly work in LE
+  and use this function to convert when needed. #
+PROC bin reverse = (INT n, INT nbits) INT:
+BEGIN
+  INT out := 0;
+  FOR b FROM 1 TO nbits DO
+    INT shl := nbits - b;
+    INT shr := b - 1;
+    INT l := ABS(BIN(n) AND (BIN(1) SHL shl));
+    INT r := ABS(BIN(n) AND (BIN(1) SHL shr));
+    INT lb := (l > 0 | 1 | 0);
+    INT rb := (r > 0 | 1 | 0);
+    out := ABS(BIN(out) OR (BIN(lb) SHL shr) OR (BIN(rb) SHL shl))
+  OD;
+  out
+END;
+
+# We use the first 28 bits of each int. #
+PROC get bits = (REF []INT bits, INT from bit, INT to bit) INT:
+BEGIN
+  INT starti := ((from bit - 1) OVER 28) + 1;
+  INT offset := (from bit - 1) MOD 28;
+  INT a := bits[starti];
+
+  TO offset DO
+    a := a OVER 2
+  OD;
+
+  INT rem := (to bit - from bit + 1) - (28 - offset);
+  IF rem > 0 THEN
+    INT b := bits[starti+1];
+    INT n already read := (to bit - from bit + 1) - rem;
+    BITS mask := BIN(ABS(BIN(1) SHL rem) - 1);
+    b := ABS((BIN(b) AND mask) SHL n already read);
+    a := ABS(BIN(a) OR BIN(b))
+  ELSE
+    BITS mask := BIN(ABS(BIN(1) SHL (to bit - from bit + 1)) - 1);
+    a := ABS(BIN(a) AND mask)
+  FI;
+
+  bin reverse(a, to bit - from bit + 1)
+END;
+
+PROC read hex = (STRING input) REF []INT:
+BEGIN
+  REF FLEX []INT bits := HEAP [1:8]INT;
+  INT an := 0;
+
+  INT current := 0;
+  INT n := 0;
+  FOR i FROM LWB input TO UPB input DO
+    CHAR d = input[i];
+    INT val :=
+      IF ABS(d) >= ABS("A") AND ABS(d) <= ABS("F") THEN
+        ABS(d) - ABS("A") + 10
+      ELSE
+        ABS(d) - ABS("0")
+      FI;
+
+    IF n = 7 THEN
+      an +:= 1;
+      IF an >= UPB bits THEN # using >= so that step after loop guaranteed not to be OOB #
+        REF FLEX []INT new bits = HEAP FLEX [2 * UPB bits]INT;
+        new bits[:UPB bits] := bits;
+        bits := new bits
+      FI;
+      bits[an] := current;
+      current := 0;
+      n := 0
+    FI;
+
+    val := bin reverse(val, 4);
+    current := ABS(BIN(current) OR (BIN(val) SHL (n * 4)));
+    n +:= 1
+  OD;
+
+  an +:= 1;
+  bits[an] := current;
+  
+  REF FLEX []INT(bits) := bits[:an];
+  bits
+END;
+
+PROC decode = (REF []INT bits, INT start, REF REF PACKET output, REF INT end) VOID:
+BEGIN
+  INT version := get bits(bits, start, start+2);
+  INT type := get bits(bits, start+3, start+5);
+  IF type = 4 THEN
+    INT gstart := start + 6;
+    LONG INT val := 0;
+    BOOL cnt := TRUE;
+    WHILE cnt DO
+      INT v := get bits(bits, gstart, gstart + 4);
+      IF ABS(BIN(v) AND BIN(16)) = 0 THEN
+        # It's the final group. #
+        cnt := FALSE
+      ELSE
+        v := ABS(BIN(v) XOR BIN(16))
+      FI;
+      val *:= 16;
+      val +:= LONG INT(v);
+
+      gstart +:= 5
+    OD;
+
+    # Account for padding to 4 bit boundary. #
+    #gstart +:= (gstart MOD 4);#
+
+    end := gstart - 1;
+    output := HEAP PACKET := (
+      version, type, val, HEAP [1:0]REF PACKET
+    )
+  ELSE
+    # operator #
+    INT length type := get bits(bits, start + 6, start + 6);
+    INT maxpacks := max int;
+    INT maxbits := max int;
+    INT pstart;
+    IF length type = 0 THEN
+      maxbits := get bits(bits, start + 7, start + 7 + 15 - 1);
+      pstart := start + 7 + 15
+    ELSE
+      maxpacks := get bits(bits, start + 7, start + 7 + 11 - 1);
+      pstart := start + 7 + 11
+    FI;
+
+    INT bits read := 0;
+    INT packs read := 0;
+    REF FLEX []REF PACKET subpackets := HEAP FLEX [1:2]REF PACKET;
+    INT nsubs := 0;
+
+    WHILE bits read < maxbits AND packs read < maxpacks DO
+      REF PACKET subpacket := NIL;
+      INT subpacket end := 0;
+      decode(bits, pstart, subpacket, subpacket end);
+
+      nsubs +:= 1;
+      IF nsubs > UPB subpackets THEN
+        REF FLEX []REF PACKET new subpackets = HEAP FLEX [1:2*UPB subpackets]REF PACKET;
+        new subpackets[:UPB subpackets] := subpackets;
+        subpackets := new subpackets
+      FI;
+      subpackets[nsubs] := subpacket;
+
+      bits read +:= subpacket end - pstart + 1;
+      packs read +:= 1;
+      pstart := subpacket end + 1
+    OD;
+
+    REF FLEX []REF PACKET (subpackets) := subpackets[:nsubs];
+
+    output := HEAP PACKET := (
+      version, type, 0, subpackets
+    );
+    end := pstart - 1
+  FI
+END;
+
+PROC sum versions = (REF PACKET root) INT:
+BEGIN
+  INT sum := version OF root;
+  FOR i FROM LWB children OF root TO UPB children OF root DO
+    sum +:= sum versions((children OF root)[i])
+  OD;
+  sum
+END;
+
+PROC main = VOID:
+BEGIN
+  FILE in;
+
+  open(in, "data/data16.txt", stand in channel);
+  BOOL finished reading := FALSE;
+  on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+  on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+  STRING input;
+  get(in, (input, newline));
+
+  close(in);
+
+  REF []INT bits = read hex(input);
+  REF PACKET output := NIL;
+  INT end := 0;
+  decode(bits, 1, output, end);
+
+  printf(($"Part 1: sum of packet versions = ", g(0)l$, sum versions(output)))
+END;
+
+main
