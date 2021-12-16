@@ -54,7 +54,7 @@ BEGIN
   FOR i FROM LWB xcoords TO UPB xcoords DO
     INT ax = xcoords[i];
     INT ay = ycoords[i];
-    IF ax >= 1 AND ax <= UPB grid AND ay >= 1 AND ay <= UPB grid[1,] THEN
+    IF ax >= 1 AND ax <= UPB grid AND ay >= 1 AND ay <= 2 UPB grid THEN
       grid[ax, ay] +:= n
     FI
   OD
@@ -62,7 +62,7 @@ END;
 
 PROC simulate = (REF [,]INT grid, INT max n steps, REF INT total flashes, REF INT first sync) VOID:
 BEGIN
-  [UPB grid, UPB grid[1,]]BOOL already flashed;
+  [UPB grid, 2 UPB grid]BOOL already flashed;
   INT n flashes := 0;
 
   INT step := 0;

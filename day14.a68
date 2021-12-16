@@ -51,7 +51,7 @@ PROC initial adjacencies = (STRING s) REF [,]LONG INT:
 BEGIN
   REF [,]LONG INT adjacencies = HEAP [1:26,1:26]LONG INT;
   FOR i FROM LWB adjacencies TO UPB adjacencies DO
-    FOR j FROM LWB adjacencies[1,] TO UPB adjacencies[1,] DO
+    FOR j FROM 2 LWB adjacencies TO 2 UPB adjacencies DO
       adjacencies[i,j] := 0
     OD
   OD;
@@ -70,7 +70,7 @@ BEGIN
 
   TO n iterations DO
     FOR i FROM LWB tmp adj TO UPB tmp adj DO
-      FOR j FROM LWB tmp adj[1,] TO UPB tmp adj[1,] DO
+      FOR j FROM 2 LWB tmp adj TO 2 UPB tmp adj DO
         tmp adj[i,j] := 0
       OD
     OD;
@@ -91,7 +91,7 @@ BEGIN
     OD;
 
     FOR i FROM LWB adjacencies TO UPB adjacencies DO
-      FOR j FROM LWB adjacencies[1,] TO UPB adjacencies[1,] DO
+      FOR j FROM 2 LWB adjacencies TO 2 UPB adjacencies DO
         adjacencies[i,j] +:= tmp adj[i, j]
       OD
     OD
