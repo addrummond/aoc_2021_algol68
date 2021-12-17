@@ -39,10 +39,8 @@ BEGIN
   FOR b FROM 1 TO nbits DO
     INT shl := nbits - b;
     INT shr := b - 1;
-    INT l := ABS(BIN(n) AND (BIN(1) SHL shl));
-    INT r := ABS(BIN(n) AND (BIN(1) SHL shr));
-    INT lb := (l > 0 | 1 | 0);
-    INT rb := (r > 0 | 1 | 0);
+    INT lb := ABS(0 = ABS(BIN(n) AND (BIN(1) SHL shl)));
+    INT rb := ABS(0 = ABS(BIN(n) AND (BIN(1) SHL shr)));
     out := ABS(BIN(out) OR (BIN(lb) SHL shr) OR (BIN(rb) SHL shl))
   OD;
   out
