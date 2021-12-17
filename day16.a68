@@ -196,6 +196,58 @@ BEGIN
   sum
 END;
 
+PROC packet value = (REF PACKET packet) LONG INT:
+BEGIN
+  CASE type OF packet + 1 IN
+    # sum #
+    BEGIN
+      LONG INT tot := 0;
+      FOR i FROM LWB children OF packet TO UPB children OF packet DO
+        tot +:= packet value((children OF packet)[i])
+      OD;
+      tot
+    END,
+    # product #
+    BEGIN
+      LONG INT prod := 1;
+      FOR i FROM LWB children OF packet TO UPB children OF packet DO
+        prod *:= packet value((children OF packet)[i]);
+      OD;
+      prod
+    END,
+    # minimum #
+    BEGIN
+      LONG INT min := packet value((children OF packet)[1]);
+      FOR i FROM 2 TO UPB children OF packet DO
+        LONG INT v := packet value((children OF packet)[i]);
+        IF v < min THEN
+          min := v
+        FI
+      OD;
+      min
+    END,
+    # maximum #
+    BEGIN
+      LONG INT max := packet value((children OF packet)[1]);
+      FOR i FROM 2 TO UPB children OF packet DO
+        LONG INT v := packet value((children OF packet)[i]);
+        IF v > max THEN
+          max := v
+        FI
+      OD;
+      max
+    END,
+    # literal #
+    value OF packet,
+    # gt #
+    ABS(packet value((children OF packet)[1]) > packet value((children OF packet)[2])),
+    # lt #
+    ABS(packet value((children OF packet)[1]) < packet value((children OF packet)[2])),
+    # eq #
+    ABS(packet value((children OF packet)[1]) = packet value((children OF packet)[2]))
+  ESAC
+END;
+
 PROC main = VOID:
 BEGIN
   FILE in;
@@ -215,7 +267,8 @@ BEGIN
   INT end := 0;
   decode(bits, 1, output, end);
 
-  printf(($"Part 1: sum of packet versions = ", g(0)l$, sum versions(output)))
+  printf(($"Part 1: sum of packet versions = ", g(0)l$, sum versions(output)));
+  printf(($"Part 2: packet value = ", g(0)l$, packet value(output)))
 END;
 
 main
