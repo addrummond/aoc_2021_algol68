@@ -21,11 +21,13 @@ BEGIN
     printf(($"n = ", g(0)l$, value OF packet))
   ELSE
     INT new indent n = indent n + 1;
-    FOR i FROM LWB children OF packet TO UPB children OF packet DO
-      indent;
-      print(("  ----", newline));
-      debug print packet((children OF packet)[i], new indent n)
-    OD
+    IF REF []REF PACKET(children OF packet) :/=: NIL THEN
+      FOR i FROM LWB children OF packet TO UPB children OF packet DO
+        indent;
+        print(("  ----", newline));
+        debug print packet((children OF packet)[i], new indent n)
+      OD
+    FI
   FI
 END;
 
