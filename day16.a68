@@ -118,6 +118,7 @@ BEGIN
   INT version := get bits(bits, start, start+2);
   INT type := get bits(bits, start+3, start+5);
   IF type = 4 THEN
+    # literal #
     INT gstart := start + 6;
     LONG INT val := 0;
     BOOL cnt := TRUE;
