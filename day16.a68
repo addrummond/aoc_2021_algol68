@@ -260,7 +260,6 @@ BEGIN
   open(in, "data/data16.txt", stand in channel);
   BOOL finished reading := FALSE;
   on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
-  on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
 
   STRING input;
   get(in, (input, newline));
