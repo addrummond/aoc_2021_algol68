@@ -219,6 +219,8 @@ BEGIN
   on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
 
   REF [,]INT grid = read grid(in, finished reading);
+  close(in);
+
   INT part 1 dist = dijkstra(
     UPB grid,
     2 UPB grid,
