@@ -179,7 +179,7 @@ BEGIN
       pstart := subpacket end + 1
     OD;
 
-    REF FLEX []REF PACKET (subpackets) := subpackets[:nsubs];
+    REF FLEX []REF PACKET(subpackets) := subpackets[:nsubs];
 
     output := HEAP PACKET := (
       version, type, 0, subpackets
