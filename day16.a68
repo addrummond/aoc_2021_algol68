@@ -135,9 +135,6 @@ BEGIN
       gstart +:= 5
     OD;
 
-    # Account for padding to 4 bit boundary. #
-    #gstart +:= (gstart MOD 4);#
-
     end := gstart - 1;
     output := HEAP PACKET := (
       version, type, val, HEAP [1:0]REF PACKET
