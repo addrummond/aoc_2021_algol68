@@ -138,7 +138,7 @@ BEGIN
 
     end := gstart - 1;
     output := HEAP PACKET := (
-      version, type, val, HEAP [1:0]REF PACKET
+      version, type, val, NIL
     )
   ELSE
     # operator #
@@ -189,9 +189,11 @@ END;
 PROC sum versions = (REF PACKET root) INT:
 BEGIN
   INT sum := version OF root;
-  FOR i FROM LWB children OF root TO UPB children OF root DO
-    sum +:= sum versions((children OF root)[i])
-  OD;
+  IF REF []REF PACKET(children OF root) :/=: NIL THEN
+    FOR i FROM LWB children OF root TO UPB children OF root DO
+      sum +:= sum versions((children OF root)[i])
+    OD
+  FI;
   sum
 END;
 
