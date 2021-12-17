@@ -46,7 +46,8 @@ BEGIN
   out
 END;
 
-# We use the first 28 bits of each int. #
+# We use the first 28 bits of each int.
+  (INTs are 32-bit signed and it's simpler just to use the positive range.) #
 PROC get bits = (REF []INT bits, INT from bit, INT to bit) INT:
 BEGIN
   INT starti := ((from bit - 1) OVER 28) + 1;
@@ -211,7 +212,7 @@ BEGIN
     BEGIN
       LONG INT prod := 1;
       FOR i FROM LWB children OF packet TO UPB children OF packet DO
-        prod *:= packet value((children OF packet)[i]);
+        prod *:= packet value((children OF packet)[i])
       OD;
       prod
     END,
