@@ -1,0 +1,199 @@
+MODE COORD = STRUCT(
+  INT x, y
+);
+
+MODE ST = STRUCT(
+  INT xv, yv, x, y, xtsign, ytsign, tx1, tx2, ty1, ty2,
+  REF FLEX []COORD positions,
+  INT n positions
+);
+
+PROC init st = (INT xv, yv, x, y, tx1, tx2, ty1, ty2) REF ST:
+BEGIN
+  INT xtsign :=
+    IF x < tx1 AND x < tx2 THEN
+      -1
+    ELIF x > tx1 AND x > tx2 THEN
+      1
+    ELSE
+      0
+    FI;
+  INT ytsign :=
+    IF y < ty1 AND y < ty2 THEN
+      -1
+    ELIF y > ty1 AND y > ty2 THEN
+      1
+    ELSE
+      0
+    FI;
+
+  HEAP ST := (xv, yv, x, y, xtsign, ytsign, tx1, tx2, ty1, ty2, HEAP FLEX [1:8]COORD, 0)
+END;
+
+PROC step = (REF ST st, REF BOOL in zone, REF INT max y) BOOL:
+BEGIN
+  (x OF st) +:= (xv OF st);
+  (y OF st) +:= (yv OF st);
+  IF xv OF st < 0 THEN
+    (xv OF st) +:= 1
+  ELIF xv OF st > 0 THEN
+    (xv OF st) -:= 1
+  FI;
+  (yv OF st) -:= 1;
+
+  (n positions OF st) +:= 1;
+  IF (n positions OF st) > UPB positions OF st THEN
+    REF FLEX []COORD new positions = HEAP FLEX [1:2 * UPB positions OF st]COORD;
+    new positions[:UPB positions OF st] := (positions OF st);
+    (positions OF st) := new positions
+  FI;
+  (positions OF st)[(n positions OF st)] := (x OF st, y OF st);
+
+  IF (y OF st) > max y THEN
+    max y := (y OF st)
+  FI;
+
+  IF (x OF st) >= (tx1 OF st) AND (x OF st) <= (tx2 OF st) AND (y OF st) >= (ty1 OF st) AND (y OF st) <= (ty2 OF st) THEN
+    in zone := TRUE;
+    TRUE
+  ELSE
+    INT xtsign :=
+      IF (x OF st) < (tx1 OF st) AND (x OF st) < (tx2 OF st) THEN
+        -1
+      ELIF (x OF st) > (tx1 OF st) AND (x OF st) > (tx2 OF st) THEN
+        1 
+      ELSE
+        0
+      FI;
+
+    INT ytsign :=
+      IF (y OF st) < (ty1 OF st) AND (y OF st) < (ty2 OF st) THEN
+        -1
+      ELIF (y OF st) > (ty1 OF st) AND (y OF st) > (ty2 OF st) THEN
+        1 
+      ELSE
+        0
+      FI;
+    
+    # have we finished? #
+    ((ytsign OF st) /= ytsign AND (xtsign OF st) /= xtsign)
+      OR
+    (yv OF st < 0 AND y OF st < ty1 OF st AND y OF st < ty2 OF st)
+      OR
+    (xv OF st = 0 AND xtsign /= 0)
+  FI
+END;
+
+PROC find highest = (INT tx1, INT tx2, INT ty1, INT ty2) VOID:
+BEGIN
+  INT overall max y := -max int;
+  INT overall max y xv := 0;
+  INT overall max y yv := 0;
+
+  FOR i FROM 1 TO (tx2 - tx1) * 10 DO
+    FOR j FROM 1 TO (ty2 - ty1) * 10 DO
+      INT xv := IF tx1 < 0 THEN -i ELSE i FI;
+
+      BOOL finished := FALSE;
+      BOOL in zone := FALSE;
+      INT max y := -max int;
+      REF ST st := init st(xv, j, 0, 0, tx1, tx2, ty1, ty2);
+
+      WHILE NOT finished DO
+        finished := step(st, in zone, max y)
+      OD;
+
+      IF in zone AND max y > overall max y THEN
+        overall max y := max y;
+        overall max y xv := xv;
+        overall max y yv := j
+      FI
+    OD
+  OD;
+
+  BOOL finished := FALSE;
+  BOOL in zone := FALSE;
+  INT max y := -max int;
+  REF ST st := init st(overall max y xv, overall max y yv, 0, 0, tx1, tx2, ty1, ty2);
+
+  WHILE NOT finished DO
+    finished := step(st, in zone, max y)
+  OD;
+
+  print(("OUT", overall max y xv, overall max y yv, overall max y, newline))
+END;
+
+PROC debug print st = (REF ST st) VOID:
+BEGIN
+  INT minx := x OF st;
+  INT maxx := x OF st;
+  INT miny := y OF st;
+  INT maxy := y OF st;
+  FOR i FROM 1 TO n positions OF st DO
+    IF x OF (positions OF st)[i] < minx THEN
+      minx := x OF (positions OF st)[i]
+    FI;
+    IF x OF (positions OF st)[i] > maxx THEN
+      maxx := x OF (positions OF st)[i]
+    FI;
+    IF y OF (positions OF st)[i] < miny THEN
+      miny := y OF (positions OF st)[i]
+    FI;
+    IF y OF (positions OF st)[i] > maxy THEN
+      maxy := y OF (positions OF st)[i]
+    FI
+  OD;
+  IF tx1 OF st < minx THEN
+    minx := tx1 OF st
+  FI;
+  IF tx2 OF st > maxx THEN
+    maxx := tx2 OF st
+  FI;
+  IF ty1 OF st < miny THEN
+    miny := ty1 OF st
+  FI;
+  IF ty2 OF st > maxy THEN
+    maxy := ty2 OF st
+  FI;
+
+  INT width := maxx - minx;
+  INT height := maxy - miny;
+
+  FOR ii FROM height DOWNTO 1 DO
+    FOR jj FROM 1 TO width DO
+      INT i := ii + miny - 1;
+      INT j := jj + minx - 1;
+
+      IF j = (x OF st) AND i = (y OF st) THEN
+        print("#")
+      ELIF IF n positions OF st > 0 THEN j = x OF (positions OF st)[1] AND i = y OF (positions OF st)[1] ELSE FALSE FI THEN
+        print("S")
+      ELSE
+        BOOL found := FALSE;
+        FOR p FROM 2 TO n positions OF st WHILE NOT found DO
+          COORD c := (positions OF st)[p];
+          IF j = x OF c AND i = y OF c THEN
+            found := TRUE
+          FI
+        OD;
+        IF found THEN
+          print("#")
+        ELSE
+          IF j >= (tx1 OF st) AND j <= (tx2 OF st) AND i >= (ty1 OF st) AND i <= (ty2 OF st) THEN
+            print("T")
+          ELSE
+            print(".")
+          FI
+        FI
+      FI
+    OD;
+    print(newline)
+  OD
+END;
+
+PROC main = VOID:
+BEGIN
+  find highest(70, 96, -179, -124)
+END;
+
+main
