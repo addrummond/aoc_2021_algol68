@@ -84,13 +84,34 @@ BEGIN
   FI
 END;
 
+# The best solutions always end with the probe dropping vertically (due to air resistance).
+  The x distance traveled is x + (x - 1) + (x - 2) ... = (x * (x + 1))/2
+  We can thus calculate the range of possible x vels analytically:
+    https://www.wolframalpha.com/input/?i=solve+%28n+*+%28n+%2B+1%29%29%2F2+%3D+k+for+n
+#
+PROC find x vel range = (INT x1, INT x2, REF INT min, REF INT max) INT:
+BEGIN
+  PROC formula = (REAL n) REAL: 0.5 * (sqrt(8*n+1) - 1);
+
+  REAL x1r := x1;
+  REAL x2r := x2;
+  REAL minr := formula(x1);
+  REAL maxr := formula(x2);
+  min := ENTIER(minr);
+  max := ENTIER(maxr) + 1
+END;
+
 PROC find highest = (INT tx1, INT tx2, INT ty1, INT ty2) VOID:
 BEGIN
   INT overall max y := -max int;
   INT overall max y xv := 0;
   INT overall max y yv := 0;
 
-  FOR i FROM 1 TO (tx2 - tx1) * 10 DO
+  INT xvelmin := 0;
+  INT xvelmax := 0;
+  find x vel range(tx1, tx2, xvelmin, xvelmax);
+
+  FOR i FROM xvelmin TO xvelmax DO
     FOR j FROM 1 TO (ty2 - ty1) * 10 DO
       INT xv := IF tx1 < 0 THEN -i ELSE i FI;
 
