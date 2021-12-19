@@ -112,33 +112,47 @@ BEGIN
   find x vel range(tx1, tx2, xvelmin, xvelmax);
 
   FOR i FROM xvelmin TO xvelmax DO
-    FOR j FROM 1 TO (ty2 - ty1) * 10 DO
-      INT xv := IF tx1 < 0 THEN -i ELSE i FI;
+    INT xv := IF tx1 < 0 THEN -i ELSE i FI;
 
+    INT guess := (ty2 - ty1) * 10;
+    BOOL going down := TRUE;
+
+    DO
       BOOL finished := FALSE;
       BOOL in zone := FALSE;
       INT max y := -max int;
-      REF ST st := init st(xv, j, 0, 0, tx1, tx2, ty1, ty2);
+      REF ST st := init st(xv, guess, 0, 0, tx1, tx2, ty1, ty2);
 
       WHILE NOT finished DO
         finished := step(st, in zone, max y)
       OD;
 
-      IF in zone AND max y > overall max y THEN
-        overall max y := max y;
-        overall max y xv := xv;
-        overall max y yv := j
+      IF in zone THEN
+        IF max y > overall max y THEN
+          overall max y := max y;
+          overall max y xv := xv;
+          overall max y yv := guess
+        FI;
+
+        IF going down THEN
+          going down := FALSE
+        FI
+      FI;
+
+      IF going down THEN
+        guess := guess OVER 2;
+        IF guess = 0 THEN
+          going down := FALSE;
+          guess := 1
+        FI
+      ELIF in zone THEN
+        guess +:= 1
+      ELSE
+        GO TO out
       FI
-    OD
-  OD;
+    OD;
 
-  BOOL finished := FALSE;
-  BOOL in zone := FALSE;
-  INT max y := -max int;
-  REF ST st := init st(overall max y xv, overall max y yv, 0, 0, tx1, tx2, ty1, ty2);
-
-  WHILE NOT finished DO
-    finished := step(st, in zone, max y)
+out: EMPTY
   OD;
 
   print(("OUT", overall max y xv, overall max y yv, overall max y, newline))
