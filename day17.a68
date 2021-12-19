@@ -101,7 +101,7 @@ BEGIN
   max := ENTIER(maxr) + 1
 END;
 
-PROC find highest = (INT tx1, INT tx2, INT ty1, INT ty2) VOID:
+PROC find highest = (INT tx1, INT tx2, INT ty1, INT ty2) INT:
 BEGIN
   INT overall max y := -max int;
   INT overall max y xv := 0;
@@ -155,7 +155,39 @@ BEGIN
 out: EMPTY
   OD;
 
-  print(("OUT", overall max y xv, overall max y yv, overall max y, newline))
+  overall max y
+END;
+
+PROC find all = (INT tx1, INT tx2, INT ty1, INT ty2) INT:
+BEGIN
+  INT count := 0;
+
+  INT xvelmin := 0;
+  INT xvelmax := 0;
+  find x vel range(tx1, tx2, xvelmin, xvelmax);
+
+  FOR i FROM xvelmin TO (tx2 - tx1) * 10 DO
+    INT xv := IF tx1 < 0 THEN -i ELSE i FI;
+
+    FOR j FROM -((ty2 - ty1) * 10) TO (ty2 - ty1) * 10 DO
+      BOOL finished := FALSE;
+      BOOL in zone := FALSE;
+      INT max y := -max int;
+      REF ST st := init st(xv, j, 0, 0, tx1, tx2, ty1, ty2);
+
+      WHILE NOT finished DO
+        finished := step(st, in zone, max y)
+      OD;
+
+      IF in zone THEN
+        count +:= 1
+      FI
+    OD;
+
+out: EMPTY
+  OD;
+
+  count
 END;
 
 PROC debug print st = (REF ST st) VOID:
@@ -228,7 +260,11 @@ END;
 
 PROC main = VOID:
 BEGIN
-  find highest(70, 96, -179, -124)
+  INT highest := find highest(70, 96, -179, -124);
+  printf(($"Part 1: max y = ", g(0)l$, highest));
+
+  INT count := find all(70, 96, -179, -124);
+  printf(($"Part 2: number of distinct initial velocity values = ", g(0)l$, count))
 END;
 
 main
