@@ -105,7 +105,7 @@ BEGIN
     num := parent OF num;
 
     CASE a OF num IN
-      (INT nn): BEGIN (a OF num) := nn + n; GO TO out END,
+      (INT nn): (a OF num) := nn + n,
       (REF NUM l):
         BEGIN
           num := l;
@@ -115,11 +115,10 @@ BEGIN
               (INT nn): BEGIN (b OF num) := nn + n; GO TO out END,
               (REF NUM n): num := n
             ESAC
-          OD
+          OD;
+          out: EMPTY
         END
-    ESAC;
-
-out: EMPTY
+    ESAC
   FI
 END;
 
@@ -138,7 +137,7 @@ BEGIN
     num := parent OF num;
 
     CASE b OF num IN
-      (INT nn): BEGIN (b OF num) := nn + n; GO TO out END,
+      (INT nn): (b OF num) := nn + n,
       (REF NUM r):
         BEGIN
           num := r;
@@ -148,11 +147,10 @@ BEGIN
               (INT nn): BEGIN (a OF num) := nn + n; GO TO out END,
               (REF NUM n): num := n
             ESAC
-          OD
+          OD;
+          out: EMPTY
         END
-    ESAC;
-
-out: EMPTY
+    ESAC
   FI
 END;
 
