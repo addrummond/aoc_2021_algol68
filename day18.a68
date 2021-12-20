@@ -1,9 +1,11 @@
 MODE NUM = STRUCT(
   REF NUM parent,
-  UNION (VOID, INT, REF NUM) a, b
+  CHILD a, b
 );
 
-PROC is empty = (REF UNION (VOID, INT, REF NUM) u) BOOL:
+MODE CHILD = UNION (VOID, INT, REF NUM);
+
+PROC is empty = (REF CHILD u) BOOL:
   CASE u IN
     (VOID): TRUE
     OUT FALSE
