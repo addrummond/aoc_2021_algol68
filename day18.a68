@@ -177,28 +177,25 @@ PROC act = (REF NUM root, PROC (REF NUM, INT) BOOL f) BOOL:
 BEGIN
   PROC recurse = (REF NUM num, INT depth) BOOL:
   BEGIN
+    BOOL changed := FALSE;
+
     CASE a OF num IN
       (REF NUM n):
         IF recurse(n, depth + 1) THEN 
-          TRUE
-        ELIF f(num, depth) THEN
-          TRUE
-        ELSE
-          CASE b OF num IN
-            (REF NUM n): recurse(n, depth + 1)
-            OUT FALSE
-          ESAC
+          changed := TRUE
         FI
-      OUT
-        IF f(num, depth) THEN
-          TRUE
-        ELSE
-          CASE b OF num IN
-            (REF NUM n): recurse(n, depth + 1)
-            OUT FALSE
-          ESAC
-        FI
-    ESAC
+    ESAC;
+
+    IF changed THEN
+      TRUE
+    ELIF f(num, depth) THEN
+      TRUE
+    ELSE
+      CASE b OF num IN
+        (REF NUM n): recurse(n, depth + 1)
+        OUT FALSE
+      ESAC
+    FI
   END;
 
   recurse(root, 1)
@@ -219,19 +216,17 @@ END;
 PROC try split = (REF NUM num) BOOL:
 BEGIN
   act(num, (REF NUM num, INT depth) BOOL: BEGIN
-    BOOL changed :=
-      CASE a OF num IN
-        (INT v):
-          IF v > 9 THEN
-            REF NUM s := split(v);
-            REF REF NUM(parent OF s) := num;
-            (a OF num) := s;
-            TRUE
-          ELSE
-            FALSE
-          FI
-        OUT FALSE
-      ESAC;
+    BOOL changed := FALSE;
+
+    CASE a OF num IN
+      (INT v):
+        IF v > 9 THEN
+          REF NUM s := split(v);
+          (parent OF s) := num;
+          (a OF num) := s;
+          changed := TRUE
+        FI
+    ESAC;
 
     IF changed THEN
       TRUE
@@ -240,15 +235,14 @@ BEGIN
         (INT v):
           IF v > 9 THEN
             REF NUM s := split(v);
-            REF REF NUM(parent OF s) := num;
+            (parent OF s) := num;
             (b OF num) := s;
-            TRUE
-          ELSE
-            FALSE
+            changed := TRUE
           FI
-        OUT FALSE
       ESAC
-    FI
+    FI;
+
+    changed
   END)
 END;
 
