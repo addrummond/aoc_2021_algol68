@@ -232,6 +232,7 @@ BEGIN
           FI
         OUT FALSE
       ESAC;
+
     IF changed THEN
       TRUE
     ELSE
@@ -243,7 +244,6 @@ BEGIN
             (b OF num) := s;
             TRUE
           ELSE
-            
             FALSE
           FI
         OUT FALSE
