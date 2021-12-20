@@ -204,7 +204,7 @@ BEGIN
   recurse(root, 1)
 END;
 
-PROC recurse explode = (REF NUM num) BOOL:
+PROC try explode = (REF NUM num) BOOL:
 BEGIN
   act(num, (REF NUM num, INT depth) BOOL: BEGIN
     IF depth = 5 THEN
@@ -216,7 +216,7 @@ BEGIN
   END)
 END;
 
-PROC recurse split = (REF NUM num) BOOL:
+PROC try split = (REF NUM num) BOOL:
 BEGIN
   act(num, (REF NUM num, INT depth) BOOL: BEGIN
     BOOL changed :=
@@ -255,9 +255,9 @@ END;
 PROC reduce = (REF NUM num) VOID:
 BEGIN
   DO
-    IF recurse explode(num) THEN
+    IF try explode(num) THEN
       EMPTY
-    ELIF recurse split(num) THEN
+    ELIF try split(num) THEN
       EMPTY
     ELSE
       GO TO out
