@@ -270,16 +270,15 @@ END;
 
 PROC magnitude = (REF NUM num) INT:
 BEGIN
-  INT sum := 0;
   CASE a OF num IN
-    (INT v): sum +:= 3 * v,
-    (REF NUM n): sum +:= 3 * magnitude(n)
-  ESAC;
+    (INT v): 3 * v,
+    (REF NUM n): 3 * magnitude(n)
+  ESAC
+    +
   CASE b OF num IN
-    (INT v): sum +:= 2 * v,
-    (REF NUM n): sum +:= 2 * magnitude(n)
-  ESAC;
-  sum
+    (INT v): 2 * v,
+    (REF NUM n): 2 * magnitude(n)
+  ESAC
 END;
 
 PROC part 1 = (REF []STRING lines) VOID:
