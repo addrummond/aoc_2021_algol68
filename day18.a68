@@ -1,0 +1,338 @@
+MODE NUM = STRUCT(
+  REF NUM parent,
+  UNION (VOID, INT, REF NUM) a, b
+);
+
+PROC is empty = (REF UNION (VOID, INT, REF NUM) u) BOOL:
+  CASE u IN
+    (VOID): TRUE
+    OUT FALSE
+  ESAC;
+
+PROC is left child = (REF NUM child) BOOL:
+  IF REF NUM(parent OF child) :=: NIL THEN
+    FALSE
+  ELSE
+    CASE a OF (parent OF child) IN
+      (REF NUM n): n :=: child
+      OUT FALSE
+    ESAC
+  FI;
+
+PROC is right child = (REF NUM child) BOOL:
+  IF REF NUM(parent OF child) :=: NIL THEN
+    FALSE
+  ELSE
+    NOT is left child(child)
+  FI;
+
+PROC read lines = (REF FILE in, REF BOOL finished reading) REF []STRING:
+BEGIN
+  REF FLEX []STRING lines := HEAP FLEX [1:8]STRING;
+
+  INT line i := 1;
+  WHILE
+    NOT finished reading
+  DO
+    STRING line;
+    get(in, (line, newline));
+
+    IF NOT finished reading THEN
+      IF line i > UPB lines THEN
+        REF FLEX[]STRING new lines = HEAP FLEX [2 * UPB lines]STRING;
+        new lines[:UPB lines] := lines;
+        lines := new lines
+      FI;
+      lines[line i] := line;
+      line i +:= 1
+    FI
+  OD;
+
+  REF FLEX []STRING(lines) := lines[:line i-1];
+  lines
+END;
+
+PROC parse = (STRING s) REF NUM:
+BEGIN
+  REF NUM current := NIL;
+  BOOL first := TRUE;
+  
+  FOR i FROM LWB s TO UPB s DO
+    CHAR c := s[i];
+
+    IF c = "[" THEN
+      REF NUM new := HEAP NUM := (current, EMPTY, EMPTY);
+      IF REF NUM(current) :/=: NIL THEN
+        IF is empty(a OF current) THEN
+          (a OF current) := new
+        ELSE
+          (b OF current) := new
+        FI
+      FI;
+      current := new
+    ELIF c = "]" THEN
+      IF REF NUM(parent OF current) :/=: NIL THEN
+        current := parent OF current
+      FI
+    ELIF c = "," THEN
+      EMPTY
+    ELSE
+      IF is empty(a OF current) THEN
+        (a OF current) := ABS(c) - ABS("0")
+      ELSE
+        (b OF current) := ABS(c) - ABS("0")
+      FI
+    FI
+  OD;
+
+  current
+END;
+
+PROC add to first left = (REF NUM orig num, INT n) VOID:
+BEGIN
+  REF NUM num := orig num;
+  
+  # up all the left branches #
+  WHILE is left child(num) DO
+    num := parent OF num
+  OD;
+
+  IF REF NUM(parent OF num) :=: NIL THEN
+    NIL
+  ELSE
+    num := parent OF num;
+
+    CASE a OF num IN
+      (INT nn): BEGIN (a OF num) := nn + n; GO TO out END,
+      (REF NUM l):
+        BEGIN
+          num := l;
+
+          DO
+            CASE b OF num IN
+              (INT nn): BEGIN (b OF num) := nn + n; GO TO out END,
+              (REF NUM n): num := n
+            ESAC
+          OD
+        END
+    ESAC;
+
+out: EMPTY
+  FI
+END;
+
+PROC add to first right = (REF NUM orig num, INT n) VOID:
+BEGIN
+  REF NUM num := orig num;
+  
+  # up all the right branches #
+  WHILE is right child(num) DO
+    num := parent OF num
+  OD;
+
+  IF REF NUM(parent OF num) :=: NIL THEN
+    NIL
+  ELSE
+    num := parent OF num;
+
+    CASE b OF num IN
+      (INT nn): BEGIN (b OF num) := nn + n; GO TO out END,
+      (REF NUM r):
+        BEGIN
+          num := r;
+
+          DO
+            CASE a OF num IN
+              (INT nn): BEGIN (a OF num) := nn + n; GO TO out END,
+              (REF NUM n): num := n
+            ESAC
+          OD
+        END
+    ESAC;
+
+out: EMPTY
+  FI
+END;
+
+PROC explode = (REF NUM num) VOID:
+BEGIN
+  INT lv = (a OF num | (INT i): i);
+  INT rv = (b OF num | (INT i): i);
+  add to first left(num, lv);
+  add to first right(num, rv);
+  IF is left child(num) THEN
+    a OF (parent OF num) := 0
+  ELSE
+    b OF (parent OF num) := 0
+  FI
+END;
+
+PROC split = (INT n) REF NUM:
+BEGIN
+  INT d := n OVER 2;
+  HEAP NUM := (NIL, d, n - d)
+END;
+
+PROC act = (REF NUM root, PROC (REF NUM, INT) BOOL f) BOOL:
+BEGIN
+  PROC recurse = (REF NUM num, INT depth) BOOL:
+  BEGIN
+    CASE a OF num IN
+      (REF NUM n):
+        IF recurse(n, depth + 1) THEN 
+          TRUE
+        ELIF f(num, depth) THEN
+          TRUE
+        ELSE
+          CASE b OF num IN
+            (REF NUM n): recurse(n, depth + 1)
+            OUT FALSE
+          ESAC
+        FI
+      OUT
+        IF f(num, depth) THEN
+          TRUE
+        ELSE
+          CASE b OF num IN
+            (REF NUM n): recurse(n, depth + 1)
+            OUT FALSE
+          ESAC
+        FI
+    ESAC
+  END;
+
+  recurse(root, 1)
+END;
+
+PROC recurse explode = (REF NUM num) BOOL:
+BEGIN
+  act(num, (REF NUM num, INT depth) BOOL: BEGIN
+    IF depth = 5 THEN
+      explode(num);
+      TRUE
+    ELSE
+      FALSE
+    FI
+  END)
+END;
+
+PROC recurse split = (REF NUM num) BOOL:
+BEGIN
+  act(num, (REF NUM num, INT depth) BOOL: BEGIN
+    BOOL changed :=
+      CASE a OF num IN
+        (INT v):
+          IF v > 9 THEN
+            REF NUM s := split(v);
+            REF REF NUM(parent OF s) := num;
+            (a OF num) := s;
+            TRUE
+          ELSE
+            FALSE
+          FI
+        OUT FALSE
+      ESAC;
+    IF changed THEN
+      TRUE
+    ELSE
+      CASE b OF num IN
+        (INT v):
+          IF v > 9 THEN
+            REF NUM s := split(v);
+            REF REF NUM(parent OF s) := num;
+            (b OF num) := s;
+            TRUE
+          ELSE
+            
+            FALSE
+          FI
+        OUT FALSE
+      ESAC
+    FI
+  END)
+END;
+
+PROC reduce = (REF NUM num) VOID:
+BEGIN
+  DO
+    IF recurse explode(num) THEN
+      EMPTY
+    ELIF recurse split(num) THEN
+      EMPTY
+    ELSE
+      GO TO out
+    FI
+  OD;
+out: EMPTY
+END;
+
+PROC sum = (REF NUM a, REF NUM b) REF NUM:
+BEGIN
+  REF NUM new := HEAP NUM := (NIL, a, b);
+  (parent OF a) := new;
+  (parent OF b) := new;
+  new
+END;
+
+PROC magnitude = (REF NUM num) INT:
+BEGIN
+  INT sum := 0;
+  CASE a OF num IN
+    (INT v): sum +:= 3 * v,
+    (REF NUM n): sum +:= 3 * magnitude(n)
+  ESAC;
+  CASE b OF num IN
+    (INT v): sum +:= 2 * v,
+    (REF NUM n): sum +:= 2 * magnitude(n)
+  ESAC;
+  sum
+END;
+
+PROC part 1 = (REF []STRING lines) VOID:
+BEGIN
+  REF NUM current := parse(lines[1]);
+  FOR i FROM LWB lines + 1 TO UPB lines DO
+    current := sum(current, parse(lines[i]));
+    reduce(current)
+  OD;
+
+  printf(($"Part 1: magnitude of sum = ", g(0)l$, magnitude(current)))
+END;
+
+PROC part 2 = (REF []STRING lines) VOID:
+BEGIN
+  INT max mag := -max int;
+  FOR i FROM LWB lines TO UPB lines DO
+    FOR j FROM i+1 TO UPB lines DO
+      REF NUM num1 := parse(lines[i]);
+      REF NUM num2 := parse(lines[j]);
+      REF NUM s := sum(num1, num2);
+      reduce(s);
+      INT mag := magnitude(s);
+      IF mag > max mag THEN
+        max mag := mag
+      FI
+    OD
+  OD;
+
+  printf(($"Part 2: max mag = ", g(0)l$, max mag))
+END;
+
+PROC main = VOID:
+BEGIN
+  FILE in;
+
+  open(in, "data/data18.txt", stand in channel);
+  BOOL finished reading := FALSE;
+  on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+  on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+  REF []STRING lines := read lines(in, finished reading);
+  close(in);
+
+  part 1(lines);
+
+  part 2(lines)
+END;
+
+main
