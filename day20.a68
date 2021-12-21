@@ -1,0 +1,181 @@
+PROC read lines = (REF FILE in, REF BOOL finished reading) REF []STRING:
+BEGIN
+  REF FLEX []STRING lines := HEAP FLEX [1:8]STRING;
+
+  INT line i := 1;
+  WHILE
+    NOT finished reading
+  DO
+    STRING line;
+    get(in, (line, newline));
+
+    IF NOT finished reading THEN
+      IF line i > UPB lines THEN
+        REF FLEX[]STRING new lines = HEAP FLEX [2 * UPB lines]STRING;
+        new lines[:UPB lines] := lines;
+        lines := new lines
+      FI;
+      lines[line i] := line;
+      line i +:= 1
+    FI
+  OD;
+
+  REF FLEX []STRING(lines) := lines[:line i-1];
+  lines
+END;
+
+PROC parse lines = (REF []STRING lines, REF FLEX [,]INT image, REF FLEX []INT windows) VOID:
+BEGIN
+  STRING w := lines[1];
+  windows := HEAP [1:UPB w]INT;
+  FOR i FROM 1 TO UPB w DO
+    windows[i] := IF w[i] = "#" THEN 1 ELSE 0 FI
+  OD;
+
+  REF FLEX []REF []INT rows := HEAP FLEX [1:8] REF []INT;
+  INT n rows := 0;
+  FOR i FROM 3 TO UPB lines DO
+    REF []INT row := HEAP [1:UPB lines[i]]INT;
+    FOR j FROM 1 TO UPB lines[i] DO
+      row[j] := IF lines[i][j] = "#" THEN 1 ELSE 0 FI
+    OD;
+    n rows +:= 1;
+    IF n rows > UPB rows THEN
+      REF FLEX []REF []INT new rows = HEAP FLEX [1:2*UPB rows] REF []INT;
+      new rows[:UPB rows] := rows;
+      rows := new rows
+    FI;
+    rows[n rows] := row
+  OD;
+
+  REF FLEX []REF []INT(rows) := rows[:n rows];
+
+  image := HEAP [UPB rows[1],UPB rows]INT;
+  FOR x FROM 1 TO UPB rows[1] DO
+    FOR y FROM 1 TO UPB rows DO
+      image[x,y] := rows[y][x]
+    OD
+  OD
+END;
+
+PROC aref = (REF [,]INT image, INT x, INT y, INT def) INT:
+BEGIN
+  IF x < 1 OR x > UPB image THEN
+    def
+  ELIF y < 1 OR y > 2 UPB image THEN
+    def
+  ELSE
+    image[x,y]
+  FI
+END;
+
+PROC get window = (REF [,]INT image, INT x, INT y, INT def) INT:
+BEGIN
+  INT se := aref(image, x+1,y+1, def);
+  INT s := aref(image, x,y+1, def);
+  INT sw := aref(image, x-1,y+1, def);
+  INT e := aref(image, x+1,y, def);
+  INT c := aref(image, x,y, def);
+  INT w := aref(image, x-1,y, def);
+  INT ne := aref(image, x+1,y-1, def);
+  INT n := aref(image, x,y-1, def);
+  INT nw := aref(image, x-1,y-1, def);
+  
+  se + (s * 2) + (sw * 4) + (e * 8) + (c * 16) + (w * 32) + (ne * 64) + (n * 128) + (nw * 256)
+END;
+
+PROC set from window = (REF [,]INT image, REF [,]INT output, REF []INT windows, INT ix, iy, ox, oy, def) VOID:
+BEGIN
+  INT wi := get window(image, ix, iy, def);
+  INT wp := windows[wi+1];
+  output[ox,oy] := wp
+END;
+
+PROC transform = (REF [,]INT image, REF []INT windows, INT def) REF [,]INT:
+BEGIN
+  INT border = 1;
+  REF [,]INT output := HEAP [LWB image:UPB image+border*2, 2 LWB image:2 UPB image+border*2]INT;
+
+  FOR x FROM LWB image - border TO UPB image + border DO
+    FOR y FROM 2 LWB image - border TO 2 UPB image + border DO
+      set from window(image, output, windows, x, y, x + border, y + border, def)
+    OD
+  OD;
+
+  output
+END;
+
+PROC print image = (REF [,]INT image) VOID:
+  FOR y FROM 2 LWB image TO 2 UPB image DO
+    FOR x FROM LWB image TO UPB image DO
+      print(IF image[x,y] = 1 THEN "#" ELSE "." FI)
+    OD;
+    print(newline)
+  OD;
+
+PROC count = (REF [,]INT image) INT:
+BEGIN
+  INT count := 0;
+  FOR x FROM LWB image TO UPB image DO
+    FOR y FROM 2 LWB image TO 2 UPB image DO
+      count +:= image[x,y]
+    OD
+  OD;
+  count
+END;
+
+PROC part 1 = (REF [,]INT image, REF []INT windows) VOID:
+BEGIN
+  REF [,]INT transformed1 := transform(image, windows, 0);
+  REF [,]INT transformed :=
+    transform(
+      transformed1,
+      windows,
+      IF windows[1] = 1 THEN 1 ELSE 0 FI
+    );
+  print(("Part 1 output:", newline));
+  print image(transformed);
+  print(newline);
+
+  printf(($"Part 1: dimensions of input image = ", g(0), " ", g(0)l$, UPB image - LWB image + 1, 2 UPB image - 2 LWB image + 1));
+  printf(($"Part 1: dimensions of transformed image = ", g(0), " ", g(0)l$, UPB transformed - LWB transformed + 1, 2 UPB transformed - 2 LWB transformed + 1));
+  printf(($"Part 1: number of on pixels in doubly transformed image = ", g(0)l$, count(transformed)))
+END;
+
+PROC part 2 = (REF [,]INT image, REF []INT windows) VOID:
+BEGIN
+  REF [,]INT megatransformed := image;
+  INT default := 0;
+  TO 50 DO
+    megatransformed := transform(megatransformed, windows, default);
+    default := ABS(BIN(default) XOR BIN(windows[1]))
+  OD;
+
+  printf(($"Part 2: number of on pixels in image transformed 50 times = ", g(0)l$, count(megatransformed)))
+END;
+
+PROC main = VOID:
+BEGIN
+  FILE in;
+
+  open(in, "data/data20.txt", stand in channel);
+  BOOL finished reading := FALSE;
+  on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+  on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+  REF []STRING lines := read lines(in, finished reading);
+  close(in);
+
+  REF FLEX [,]INT image := LOC [1:0,1:0]INT;
+  REF FLEX []INT windows := LOC [1:0]INT;
+  parse lines(lines, image, windows);
+
+  print(("Input:", newline));
+  print image(image);
+  print(newline);
+
+  part 1(image, windows);
+  part 2(image, windows)
+END;
+
+main
