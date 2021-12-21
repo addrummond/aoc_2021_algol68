@@ -56,7 +56,7 @@ BEGIN
       2) The position of player 2
       3) The score of player 1
       4) The score of player 2
-      5) The player who's turn it is next
+      5) The player whose turn it is next
     
     We can just loop through each of the states (which isn't a vast number) and do some arithmetic.
     We switch alternately between two copies of the state table (first array index) to avoid interference.
@@ -156,6 +156,7 @@ BEGIN
   FOR pos1 FROM 2 LWB states TO 2 UPB states DO
     FOR pos2 FROM 3 LWB states TO 3 UPB states DO
       FOR s1 FROM 4 LWB states TO 4 UPB states DO
+        # Player 2's winning states will tbe in the other table (hence ab MOD 2)+1) #
         p2wins +:= states[(ab MOD 2)+1,pos1,pos2,s1,winning score+1,1]
       OD
     OD
