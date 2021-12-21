@@ -62,7 +62,7 @@ BEGIN
     We switch alternately between two copies of the state table (first array index) to avoid interference.
   #
 
-  REF [,,,,,]LONG INT states := LOC [1:2,1:10,1:10,1:winning score+1,1:winning score+1,1:2]LONG INT;
+  REF [,,,,,]LONG INT states := LOC [1:2,1:10,1:10,1:winning score,1:winning score,1:2]LONG INT;
   FOR ab FROM 1 TO 2 DO
     FOR pos1 FROM 2 LWB states TO 2 UPB states DO
       FOR pos2 FROM 3 LWB states TO 3 UPB states DO
@@ -80,18 +80,19 @@ BEGIN
   INT ab := 1;
   states[ab,p1start,p2start,0+1,0+1,1] := 1;
 
+  LONG INT p1wins := 0;
+  LONG INT p2wins := 0;
+
   BOOL continue := TRUE;
-  INT n loops := 0;
   WHILE continue DO
-    n loops +:= 1;
     continue := FALSE;
 
     INT nextab := (ab MOD 2)+1;
 
     FOR pos1 FROM 2 LWB states TO 2 UPB states DO
       FOR pos2 FROM 3 LWB states TO 3 UPB states DO
-        FOR s1 FROM 4 LWB states TO 4 UPB states - 1 DO # -1 to ignore states that already have a winner #
-          FOR s2 FROM 5 LWB states TO 5 UPB states - 1 DO # -1 to ignore states that already have a winner #
+        FOR s1 FROM 4 LWB states TO 4 UPB states DO
+          FOR s2 FROM 5 LWB states TO 5 UPB states DO
             FOR pturn FROM 1 TO 2 DO
               states[nextab,pos1,pos2,s1,s2,pturn] := 0
             OD
@@ -102,34 +103,36 @@ BEGIN
 
     FOR pos1 FROM 2 LWB states TO 2 UPB states DO
       FOR pos2 FROM 3 LWB states TO 3 UPB states DO
-        FOR s1 FROM 4 LWB states TO 4 UPB states - 1 DO # -1 to ignore states that already have a winner #
-          FOR s2 FROM 5 LWB states TO 5 UPB states - 1 DO # -1 to ignore states that already have a winner #
+        FOR s1 FROM 4 LWB states TO 4 UPB states DO
+          FOR s2 FROM 5 LWB states TO 5 UPB states DO
             FOR pturn FROM 1 TO 2 DO
               IF states[ab,pos1,pos2,s1,s2,pturn] > 0 THEN
-                continue := TRUE;
-
                 INT nextpturn := (pturn MOD 2) + 1;
 
-                FOR roll1 FROM 1 TO 3 DO
-                  FOR roll2 FROM 1 TO 3 DO
-                    FOR roll3 FROM 1 TO 3 DO
-                      IF pturn = 1 THEN
-                        INT newpos := ((pos1 - 1 + roll1 + roll2 + roll3) MOD 10) + 1;
-                        INT news := s1 - 1 + newpos;
-                        IF news > winning score THEN
-                          news := winning score
-                        FI;
-                        states[nextab,newpos,pos2,news+1,s2,2] +:= states[ab,pos1,pos2,s1,s2,pturn]
-                      ELSE
-                        INT newpos := ((pos2 - 1 + roll1 + roll2 + roll3) MOD 10) + 1;
-                        INT news := s2 - 1 + newpos;
-                        IF news > winning score THEN
-                          news := winning score
-                        FI;
-                        states[nextab,pos1,newpos,s1,news+1,1] +:= states[ab,pos1,pos2,s1,s2,pturn]
-                      FI
-                    OD
-                  OD
+                FOR rolls FROM 0 TO 3*3*3 - 1 DO
+                  INT roll1 := (rolls MOD 3) + 1;
+                  INT roll2 := ((rolls OVER 3) MOD 3) + 1;
+                  INT roll3 := (rolls OVER 9) + 1;
+
+                  IF pturn = 1 THEN
+                    INT newpos := ((pos1 - 1 + roll1 + roll2 + roll3) MOD 10) + 1;
+                    INT news := s1 - 1 + newpos;
+                    IF news >= winning score THEN
+                      p1wins +:= states[ab,pos1,pos2,s1,s2,pturn]
+                    ELSE
+                      continue := TRUE; # we now know we still have at least one non-winning state #
+                      states[nextab,newpos,pos2,news+1,s2,2] +:= states[ab,pos1,pos2,s1,s2,pturn]
+                    FI
+                  ELSE
+                    INT newpos := ((pos2 - 1 + roll1 + roll2 + roll3) MOD 10) + 1;
+                    INT news := s2 - 1 + newpos;
+                    IF news >= winning score THEN
+                      p2wins +:= states[ab,pos1,pos2,s1,s2,pturn];
+                    ELSE
+                      continue := TRUE;
+                      states[nextab,pos1,newpos,s1,news+1,1] +:= states[ab,pos1,pos2,s1,s2,pturn]
+                    FI
+                  FI
                 OD
               FI
             OD
@@ -138,28 +141,7 @@ BEGIN
       OD
     OD;
 
-    IF continue THEN
-      ab := nextab
-    FI
-  OD;
-
-  LONG INT p1wins := 0;
-  FOR pos1 FROM 2 LWB states TO 2 UPB states DO
-    FOR pos2 FROM 3 LWB states TO 3 UPB states DO
-      FOR s2 FROM 5 LWB states TO 5 UPB states DO
-        p1wins +:= states[ab,pos1,pos2,winning score+1,s2,2]
-      OD
-    OD
-  OD;
-
-  LONG INT p2wins := 0;
-  FOR pos1 FROM 2 LWB states TO 2 UPB states DO
-    FOR pos2 FROM 3 LWB states TO 3 UPB states DO
-      FOR s1 FROM 4 LWB states TO 4 UPB states DO
-        # Player 2's winning states will tbe in the other table (hence ab MOD 2)+1) #
-        p2wins +:= states[(ab MOD 2)+1,pos1,pos2,s1,winning score+1,1]
-      OD
-    OD
+    ab := nextab
   OD;
 
   printf(($"Part 2: player 1 wins in ", g(0), " universes; player 2 wins in ", g(0), " universes"$, p1wins, p2wins));
