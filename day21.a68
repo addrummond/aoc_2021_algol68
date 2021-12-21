@@ -1,0 +1,45 @@
+INT winning score = 1000;
+
+PROC main = VOID:
+BEGIN
+  INT p1pos := 4;
+  INT p2pos := 3;
+  INT p1score := 0;
+  INT p2score := 0;
+  INT die := 1;
+  INT n rolls := 0;
+
+  WHILE p1score < winning score AND p2score < winning score DO
+    INT rolls := die * 3 + 3;
+    n rolls +:= 3;
+    die +:= 3;
+    p1pos := ((p1pos - 1 + rolls) MOD 10) + 1;
+
+    rolls := die * 3 + 3;
+    die +:= 3;
+    p2pos := ((p2pos - 1 + rolls) MOD 10) + 1;
+
+    p1score +:= p1pos;
+    IF p1score < winning score THEN
+      n rolls +:= 3;
+      p2score +:= p2pos
+    FI
+  OD;
+
+  INT winning;
+  INT losing;
+  INT r =
+    IF p1score < p2score THEN
+      winning := p2score;
+      losing := p1score;
+      p1score * n rolls
+    ELSE
+      losing := p2score;
+      winning := p1score;
+      p2score * n rolls
+    FI;
+
+  printf(($"Part 1: winning score = ", g(0), "; losing score = ", g(0), "; rolls * losing score = ", g(0)l$, winning, losing, r))
+END;
+
+main
