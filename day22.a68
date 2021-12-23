@@ -1,0 +1,264 @@
+#
+  NOTE: You may need to tell a68g to allocate additional memory for this
+  program to work. E.g.
+
+    a68g --heap 100000000 day22.a68
+#
+
+MODE CUBOID = STRUCT(
+  INT x1, x2, y1, y2, z1, z2,
+      sign
+);
+
+PROC volume = (REF CUBOID c) LONG INT:
+BEGIN
+  LONG INT w := (x2 OF c - x1 OF c + 1);
+  LONG INT h := (y2 OF c - y1 OF c + 1);
+  LONG INT d := (z2 OF c - z1 OF c + 1);
+  w * h * d
+END;
+
+PROC range overlaps = (INT a1, a2, b1, b2) BOOL:
+  a1 <= b2 AND b1 <= a2;
+
+PROC cuboids overlap = (REF CUBOID a, REF CUBOID b) BOOL:
+  range overlaps(x1 OF a, x2 OF a, x1 OF b, x2 OF b) AND
+  range overlaps(y1 OF a, y2 OF a, y1 OF b, y2 OF b) AND
+  range overlaps(z1 OF a, z2 OF a, z1 OF b, z2 OF b);
+
+PROC read lines = (REF FILE in, REF BOOL finished reading) REF FLEX []REF CUBOID:
+BEGIN
+  REF FLEX []REF CUBOID lines := HEAP FLEX [1:8]REF CUBOID;
+
+  INT line i := 1;
+  WHILE
+    NOT finished reading
+  DO
+    INT x1 := -max int;
+    INT x2, y1, y2, z1, z2, onoff;
+    getf(in, ($c("off", "on"), " x=", g, "..", g, ",y=", g, "..", g, ",z=", g, "..", gl$, onoff, x1, x2, y1, y2, z1, z2));
+
+    IF NOT finished reading THEN
+      IF line i > UPB lines THEN
+        REF FLEX[]REF CUBOID new lines = HEAP FLEX [2 * UPB lines]REF CUBOID;
+        new lines[:UPB lines] := lines;
+        lines := new lines
+      FI;
+      lines[line i] := HEAP CUBOID := (x1, x2, y1, y2, z1, z2, onoff - 1);
+      line i +:= 1
+    FI
+  OD;
+
+  REF FLEX []REF CUBOID(lines) := lines[:line i-1];
+
+  lines
+END;
+
+PROC min = (INT a, INT b) INT:
+  IF a < b THEN
+    a
+  ELSE
+    b
+  FI;
+
+PROC max = (INT a, INT b) INT:
+  IF a > b THEN
+    a
+  ELSE
+    b
+  FI;
+
+PROC explode cuboids = (REF CUBOID a, REF CUBOID b) REF []REF CUBOID:
+BEGIN
+  INT ax1 := x1 OF a;
+  INT ax2 := x2 OF a;
+  INT ay1 := y1 OF a;
+  INT ay2 := y2 OF a;
+  INT az1 := z1 OF a;
+  INT az2 := z2 OF a;
+  INT bx1 := x1 OF b;
+  INT bx2 := x2 OF b;
+  INT by1 := y1 OF b;
+  INT by2 := y2 OF b;
+  INT bz1 := z1 OF b;
+  INT bz2 := z2 OF b;
+  INT sign := sign OF a;
+
+  REF FLEX []REF CUBOID o := HEAP FLEX [1:7]REF CUBOID;
+
+  INT oi := 0;
+
+  # above #
+  IF bz1 > az1 THEN
+    oi +:= 1;
+    o[oi] := HEAP CUBOID := (
+      ax1, ax2, 
+      ay1, ay2,
+      az1, min(az2, bz1 - 1),
+      sign
+    )
+  FI;
+
+  # below #
+  IF bz2 < az2 THEN
+    oi +:= 1;
+    o[oi] := HEAP CUBOID := (
+      ax1, ax2, 
+      ay1, ay2,
+      max(az1, bz2 + 1), az2,
+      sign
+    )
+  FI;
+
+  # left #
+  IF ax1 < bx1 THEN
+    oi +:= 1;
+    o[oi] := HEAP CUBOID := (
+      ax1, min(ax2, bx1 - 1),
+      ay1, ay2,
+      max(az1, bz1), min(az2, bz2),
+      sign
+    )
+  FI;
+
+  # right #
+  IF bx2 < ax2 THEN
+    oi +:= 1;
+    o[oi] := HEAP CUBOID := (
+      max(ax1, bx2 + 1), ax2,
+      ay1, ay2,
+      max(az1, bz1), min(az2, bz2),
+      sign
+    )
+  FI;
+
+  # front #
+  IF ay1 < by1 THEN
+    oi +:= 1;
+    o[oi] := HEAP CUBOID := (
+      max(ax1, bx1), min(ax2, bx2),
+      ay1, min(ay2, by1 - 1),
+      max(az1, bz1), min(az2, bz2),
+      sign
+    )
+  FI;
+
+  # back #
+  IF by2 < ay2 THEN
+    oi +:= 1;
+    o[oi] := HEAP CUBOID := (
+      max(ax1, bx1), min(ax2, bx2),
+      max(ay1, by2+1), ay2,
+      max(az1, bz1), min(az2, bz2),
+      sign
+    )
+  FI;
+
+  REF FLEX []REF CUBOID(o) := o[:oi];
+  o
+END;
+
+PROC concat map = (REF FLEX[]REF CUBOID cuboids, PROC (REF CUBOID) REF []REF CUBOID f) REF []REF CUBOID:
+BEGIN
+  REF FLEX[]REF CUBOID out := HEAP FLEX[1:8] REF CUBOID;
+
+  INT outi := 0;
+  FOR i FROM LWB cuboids TO UPB cuboids DO
+    REF []REF CUBOID r := f(cuboids[i]);
+    FOR j FROM LWB r TO UPB r DO
+      outi +:= 1;
+      IF outi > UPB out THEN
+        REF FLEX[]REF CUBOID new out = HEAP FLEX[1:2*UPB out]REF CUBOID;
+        new out[:UPB out] := out;
+        out := new out
+      FI;
+      out[outi] := r[j]
+    OD
+  OD;
+  
+  REF FLEX[]REF CUBOID(out) := out[:outi];
+  out
+END;
+
+PROC reduce = (REF []REF CUBOID cuboids) REF []REF CUBOID:
+BEGIN
+  REF FLEX []REF CUBOID nono := HEAP FLEX[1:1]REF CUBOID := (cuboids[1]);
+
+  # Heap allocating temporary arrays in loops seems to bork a68g's GC somehow. #
+  REF []REF CUBOID single := HEAP [1:1]REF CUBOID;
+
+  FOR i FROM 2 TO UPB cuboids DO
+    REF CUBOID new := cuboids[i];
+
+    nono := concat map(nono, (REF CUBOID c) REF []REF CUBOID: BEGIN
+      IF cuboids overlap(new, c) THEN
+        explode cuboids(c, new)
+      ELSE
+        single[1] := (c);
+        single
+      FI
+    END);
+
+    IF sign OF new = 1 THEN
+      REF FLEX []REF CUBOID new nono := HEAP [1:1+UPB nono]REF CUBOID;
+      new nono[:UPB nono] := nono;
+      new nono[UPB nono+1] := new;
+      nono := new nono
+    FI
+  OD;
+
+  nono
+END;
+
+PROC final count = (REF []REF CUBOID cuboids) LONG INT:
+BEGIN
+  LONG INT tot := 0;
+  FOR i FROM LWB cuboids TO UPB cuboids DO
+    REF CUBOID c := cuboids[i];
+    IF sign OF c = 1 THEN
+      tot +:= volume(c)
+    FI
+  OD;
+  
+  tot
+END;
+
+PROC part 1 = (REF FLEX []REF CUBOID cuboids) VOID:
+BEGIN
+  cuboids := reduce(cuboids);
+
+  INT oi := 0;
+  FOR i FROM LWB cuboids TO UPB cuboids DO
+    REF CUBOID c := cuboids[i];
+    IF x1 OF c >= -50 AND x2 OF c <= 50 AND y1 OF c >= -50 AND y2 OF c <= 50 AND z1 OF c >= -50 AND z2 OF c <= 50 THEN
+      oi +:= 1;
+      cuboids[oi] := c
+    FI
+  OD;
+
+  REF FLEX []REF CUBOID(cuboids) := cuboids[:oi];
+  cuboids := reduce(cuboids);
+  printf(($"Part 1: ", g(0)l$, final count(cuboids)))
+END;
+
+PROC part 2 = (REF FLEX []REF CUBOID cuboids) VOID:
+BEGIN
+  cuboids := reduce(cuboids);
+  printf(($"Part 2: ", g(0)l$, final count(cuboids)))
+END;
+
+FILE in;
+
+open(in, "data/data22.txt", stand in channel);
+BOOL finished reading := FALSE;
+on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+REF FLEX []REF CUBOID cuboids := read lines(in, finished reading);
+REF FLEX []REF CUBOID cuboids2 := HEAP [1:UPB cuboids]REF CUBOID;
+FOR i FROM LWB cuboids TO UPB cuboids DO
+  cuboids2[i] := HEAP CUBOID := cuboids[i]
+OD;
+
+part 1(cuboids);
+part 2(cuboids2)
