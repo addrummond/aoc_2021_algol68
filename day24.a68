@@ -1,0 +1,229 @@
+#
+  There are some clever solutions to this that rely on reverse engineering
+  the details of the algorithm. I've preferred to go with something a bit
+  more general purpose that just relies on a couple of heuristic upper bounds
+  for z at different stages of the computation. With these in place, a
+  simple depth first search performs quite well. (Actually, part 2 runs
+  pretty slowly on a68g, but a Javascript implementation of the same algo
+  completes in a few seconds.)
+#
+
+MODE INSTR = STRUCT(
+  INT name, dest, const, reg
+);
+
+PROC name to i = (STRING name) INT:
+  IF name = "inp" THEN
+    1
+  ELIF name = "add" THEN
+    2
+  ELIF name = "mul" THEN
+    3
+  ELIF name = "div" THEN
+    4
+  ELIF name = "eql" THEN
+    5
+  ELIF name = "mod" THEN
+    6
+  FI;
+
+PROC reg to i = (STRING name) INT:
+  IF name = "w" THEN
+    1
+  ELIF name = "x" THEN
+    2
+  ELIF name = "y" THEN
+    3
+  ELIF name = "z" THEN
+    4
+  FI;
+
+PROC read lines = (REF FILE in, REF BOOL finished reading) REF []INSTR:
+BEGIN
+  REF FLEX []INSTR lines := HEAP FLEX [1:8] INSTR;
+
+  INT line i := 0;
+  WHILE
+    NOT finished reading
+  DO
+    line i +:= 1;
+
+    IF line i > UPB lines THEN
+      REF FLEX[] INSTR new lines = HEAP FLEX [2 * UPB lines] INSTR;
+      new lines[:UPB lines] := lines;
+      lines := new lines
+    FI;
+
+    STRING name := "";
+    STRING dest;
+    getf(in, ($3a, " ", a$, name, dest));
+    IF name = "inp" THEN
+      lines[line i] := (name to i(name), reg to i(dest), 0, 0);
+      get(in, (newline))
+    ELIF name = "add" OR name = "mul" OR name = "div" OR name = "eql" OR name = "mod" THEN
+      STRING arg;
+      get(in, (arg, newline));
+      arg := arg[2:];
+      lines[line i] :=
+        IF arg = "w" OR arg = "x" OR arg = "y" OR arg = "z" THEN
+          (name to i(name), reg to i(dest), 0, reg to i(arg))
+        ELSE
+          INT v := 0;
+          INT s := 1;
+          FOR i FROM LWB arg TO UPB arg DO
+            IF arg[i] = "-" THEN
+              s := -1
+            ELSE
+              v *:= 10;
+              v +:= ABS(arg[i]) - ABS("0")
+            FI
+          OD;
+          (name to i(name), reg to i(dest), s * v, 0)
+        FI
+    ELSE
+      line i -:= 1
+    FI
+  OD;
+
+  REF FLEX []INSTR(lines) := lines[:line i];
+  lines
+END;
+
+PROC get subprogs := (REF []INSTR instrs) REF FLEX []REF []INSTR:
+BEGIN
+  REF FLEX []REF []INSTR progs := HEAP FLEX [1:20]REF []INSTR;
+  INT progs i := 0;
+  REF FLEX []INSTR current prog;
+  INT current prog i := 0;
+
+  FOR i FROM LWB instrs TO UPB instrs DO
+    IF (name OF instrs[i]) = 1 THEN
+      IF progs i > 0 THEN
+        REF FLEX []INSTR(current prog) := current prog[:current prog i];
+        progs[progs i] := current prog
+      FI;
+      current prog := HEAP [1:20]INSTR;
+      progs i +:= 1;
+      current prog i := 1;
+      current prog[current prog i] := instrs[i]
+    ELSE
+      current prog i +:= 1;
+      current prog[current prog i] := instrs[i]
+    FI
+  OD;
+
+  REF FLEX []INSTR(current prog) := current prog[:current prog i];
+  progs[progs i] := current prog;
+
+  REF FLEX []REF []INSTR(progs) := progs[:progs i];
+  progs
+END;
+
+# should really be local to 'run', but this reduces memory usage #
+REF []INT regs := HEAP [1:4] INT;
+
+PROC run = (REF []INSTR subprog, INT z, INT d) INT:
+BEGIN
+  regs[1] := 0;
+  regs[2] := 0;
+  regs[3] := 0;
+  regs[4] := z;
+
+  PROC lookup = (INSTR instr) INT:
+    IF reg OF instr = 0 THEN
+      const OF instr
+    ELSE
+      regs[reg OF instr]
+    FI;
+
+  FOR i FROM LWB subprog TO UPB subprog DO
+    INSTR instr := subprog[i];
+    CASE name OF instr IN
+      regs[dest OF instr] := d,
+      regs[dest OF instr] +:= lookup(instr),
+      regs[dest OF instr] *:= lookup(instr),
+      regs[dest OF instr] := regs[dest OF instr] OVER lookup(instr),
+      regs[dest OF instr] := ABS(regs[dest OF instr] = lookup(instr)),
+      regs[dest OF instr] := regs[dest OF instr] MOD lookup(instr)
+    ESAC
+  OD;
+
+  regs[4] # z #
+END;
+
+PROC reverse digits = (LONG INT v) STRING:
+BEGIN
+  FILE sf;
+  STRING ro;
+  associate(sf, ro);
+  putf(sf, (($g(0)$, v)));
+  STRING o := "";
+  FOR i FROM UPB ro DOWNTO LWB ro DO
+    o +:= ro[i]
+  OD;
+  o
+END;
+
+PROC solve = (REF []INSTR instrs, INT max z, STRING digits) STRING:
+BEGIN
+  REF FLEX []REF []INSTR progs := get subprogs(instrs);
+
+  PROC rec = (INT z, INT i) LONG INT:
+  BEGIN
+    LONG INT r := -1;
+
+    # we can tighten our z bound a bit as we get to the final digits. #
+    INT other max z := 26;
+    TO 14-i WHILE other max z < max z DO
+      other max z *:= 26
+    OD;
+
+    FOR di FROM LWB digits TO UPB digits DO
+      INT d = ABS(digits[di]) - ABS("0");
+      INT z2 = run(progs[i], z, d);
+
+      # With the conditionals below, bear in mind that Algol 68 doesn't
+        have short-circuiting boolean operators, and this is performance
+        critical code.
+      #
+
+      IF i = UPB progs THEN
+        IF z2 = 0 THEN
+          r := d;
+          GO TO out
+        FI
+      ELSE
+        IF z2 < max z THEN
+          IF z2 < other max z THEN
+            LONG INT r2 := rec(z2, i + 1);
+            IF r2 /= -1 THEN
+              r := d + (r2 * 10);
+              GO TO out
+            FI
+          FI
+        FI
+      FI
+    OD;
+
+out:
+    r
+  END;
+
+  # Storing the digits as a string leads to memory issues
+    (probably because a68g doesn't have an optimized implementation
+    of string concatenation) so we store them in reverse using LONG INT.
+    Now it's time to reverse them for the final result. #
+  reverse digits(rec(0, 1))
+END;
+
+FILE in;
+
+open(in, "data/data24.txt", stand in channel);
+BOOL finished reading := FALSE;
+on logical file end (in, (REF FILE f) BOOL: finished reading := TRUE);
+on format error (in, (REF FILE f) BOOL: finished reading := TRUE);
+
+REF []INSTR instrs := read lines(in, finished reading);
+INT max z = 26*26*26*26;
+printf(($"Part 1: largest num = ", 14al$, solve(instrs, max z, "987654321")));
+printf(($"Part 2: smallest num = ", 14al$, solve(instrs, max z, "123456789")))
