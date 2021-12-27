@@ -164,9 +164,14 @@ BEGIN
   o
 END;
 
-PROC solve = (REF []INSTR instrs, INT max z, STRING digits) STRING:
+PROC solve = (REF []INSTR instrs, INT max z, STRING sdigits) STRING:
 BEGIN
   REF FLEX []REF []INSTR progs := get subprogs(instrs);
+
+  REF []INT digits := LOC [1:9] INT;
+  FOR i FROM 1 TO 9 DO
+    digits[i] := ABS(sdigits[i]) - ABS("0")
+  OD;
 
   PROC rec = (INT z, INT i) LONG INT:
   BEGIN
@@ -179,7 +184,7 @@ BEGIN
     OD;
 
     FOR di FROM LWB digits TO UPB digits DO
-      INT d = ABS(digits[di]) - ABS("0");
+      INT d = digits[di];
       INT z2 = run(progs[i], z, d);
 
       # With the conditionals below, bear in mind that Algol 68 doesn't
